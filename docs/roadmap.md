@@ -8,10 +8,12 @@ sequencing — expect it to shift once we start building.
 - [x] Pick stack for the web app — [T3 stack](https://create.t3.gg/)
       (Next.js, TypeScript, tRPC, Prisma, NextAuth, Tailwind); see
       [architecture.md](./architecture.md)
-- [ ] Pick/design the SRS algorithm (see [architecture.md](./architecture.md))
-- [ ] Decide the pet stat model (see open questions in
-      [vision.md](./vision.md))
-- [ ] Rough data model: users, decks, cards, review history, pet state
+- [x] Pick/design the SRS algorithm — roll our own SM-2 (see
+      [architecture.md](./architecture.md))
+- [x] Decide the pet stat model — single health stat, one pet per user,
+      computed on-demand (see [architecture.md](./architecture.md))
+- [x] Rough data model: users, decks, cards, review history, pet state (see
+      [architecture.md](./architecture.md))
 
 ## Phase 1 — MVP (web)
 

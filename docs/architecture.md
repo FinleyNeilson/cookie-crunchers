@@ -53,22 +53,40 @@ review event updates this state and appends a `ReviewLog` row.
 - **tRPC** — typed API layer between client and server; good fit for the
   review-event → pet-state-recompute flow since the client can call a single
   typed `submitReview` procedure.
-- **Prisma** — ORM, maps directly onto the data model sketch below.
+- **Prisma** — ORM, maps directly onto the data model below.
 - **NextAuth (Auth.js)** — accounts, since `User`/`Deck` ownership implies we
   need auth from the start rather than deferring to local-only storage.
 - **Tailwind CSS** — styling, including whatever the pet's visual states
   turn out to be (sprite/CSS-driven, TBD).
 - Hosting: TBD (Vercel is the natural default for a T3 app but not decided).
 
-### Data model (sketch, not final)
+### Data model
 
-- `User` — via NextAuth
-- `Deck` — belongs to a user
-- `Card` — belongs to a deck; front/back content
-- `ReviewLog` — one row per review: card, timestamp, grade/result, resulting
-  interval
-- `Pet` — state derived from `ReviewLog` aggregates; exact shape depends on
-  the stat model decision in vision.md
+- `User` / `Account` / `Session` / `VerificationToken` — standard NextAuth
+  tables, unmodified.
 
-This will get fleshed out once Phase 0 decisions in the
-[roadmap](./roadmap.md) are made.
+- `Deck`
+  - `id`, `userId` (FK → `User`), `name`, `description?`, `createdAt`
+
+- `Card` — belongs to a `Deck`
+  - `id`, `deckId` (FK → `Deck`), `front`, `back`
+  - SM-2 scheduling state: `easeFactor` (float, default 2.5), `intervalDays`
+    (int, default 0), `repetitions` (int, default 0), `dueAt` (datetime,
+    defaults to now so new cards are immediately due)
+  - `createdAt`, `updatedAt`
+
+- `ReviewLog` — one row per review, canonical review history
+  - `id`, `cardId` (FK → `Card`), `reviewedAt`, `grade` (0-5, SM-2 style)
+  - `previousInterval`, `newInterval`, `previousEase`, `newEase` — snapshot of
+    the SM-2 transition, so past scheduling decisions can be inspected/debugged
+    without recomputing them
+
+- `Pet`
+  - `id`, `userId` (FK → `User`, unique — one pet per user)
+  - No stored `health` column — computed at read time (see pet state engine
+    above). May hold cosmetic fields later (e.g. a name) if the pet becomes
+    nameable, but no stat data.
+
+This satisfies the Phase 0 roadmap item "rough data model: users, decks,
+cards, review history, pet state." Next step is turning this into an actual
+`prisma/schema.prisma`.
