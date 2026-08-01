@@ -1,0 +1,123 @@
+// See docs/architecture.md for the data model rationale.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// Necessary for Next Auth
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  decks         Deck[]
+  pet           Pet?
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// App data model — see docs/architecture.md for the reasoning behind each
+// decision (SM-2 scheduling, single computed-on-demand pet health stat, etc).
+
+model Deck {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cards Card[]
+
+  @@index([userId])
+}
+
+model Card {
+  id     String @id @default(cuid())
+  deckId String
+  front  String
+  back   String
+
+  // SM-2 scheduling state, updated after each review.
+  easeFactor   Float    @default(2.5)
+  intervalDays Int      @default(0)
+  repetitions  Int      @default(0)
+  dueAt        DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  deck       Deck        @relation(fields: [deckId], references: [id], onDelete: Cascade)
+  reviewLogs ReviewLog[]
+
+  @@index([deckId])
+  @@index([dueAt])
+}
+
+model ReviewLog {
+  id         String   @id @default(cuid())
+  cardId     String
+  reviewedAt DateTime @default(now())
+  grade      Int
+
+  // Snapshot of the SM-2 transition this review caused, so past scheduling
+  // decisions can be inspected without recomputing them.
+  previousInterval Int
+  newInterval      Int
+  previousEase     Float
+  newEase          Float
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@index([cardId])
+}
+
+// No stored stat columns — health is computed on-demand from ReviewLog +
+// Card.dueAt (see docs/architecture.md). One pet per user.
+model Pet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
