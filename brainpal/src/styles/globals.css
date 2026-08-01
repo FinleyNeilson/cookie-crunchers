@@ -67,6 +67,192 @@ body {
   }
 }
 
+.flashcard-scene {
+  height: 344px;
+  margin-top: 18px;
+  perspective: 1100px;
+}
+
+.flashcard-flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.56s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.flashcard-flipper.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.flashcard-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 42px 30px 32px;
+  overflow: hidden;
+  border: 2px solid oklch(87% 0.04 75);
+  border-radius: 28px;
+  background: oklch(98% 0.02 80);
+  box-shadow: 0 12px 30px oklch(35% 0.05 60 / 0.12);
+  text-align: center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.flashcard-back {
+  border-color: oklch(72% 0.1 150);
+  background: linear-gradient(
+    180deg,
+    oklch(91% 0.06 150) 0 64px,
+    oklch(98% 0.02 80) 64px
+  );
+  transform: rotateY(180deg);
+}
+
+.study-side-label,
+.answer-side-label {
+  margin-bottom: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.study-side-label {
+  color: oklch(48% 0.04 255 / 0.65);
+  font-size: 12px;
+  font-weight: 800;
+}
+.answer-side-label {
+  color: oklch(38% 0.11 150);
+  font-family: "Baloo 2", sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.study-card-copy {
+  font-family: "Baloo 2", sans-serif;
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.answer-copy {
+  font-size: 25px;
+  font-weight: 800;
+}
+.flashcard-hint {
+  position: absolute;
+  bottom: 22px;
+  color: oklch(48% 0.04 255 / 0.48);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.quiz-review-card {
+  min-height: 340px;
+  margin-top: 18px;
+  padding: 28px;
+  border: 2px solid oklch(87% 0.04 75);
+  border-radius: 28px;
+  background: oklch(98% 0.02 80);
+  box-shadow: 0 12px 30px oklch(35% 0.05 60 / 0.12);
+  text-align: center;
+}
+.quiz-options {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+  text-align: left;
+}
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 15px;
+  border: 2px solid oklch(87% 0.04 75);
+  border-radius: 14px;
+  background: white;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
+}
+.quiz-option:not(:disabled):hover {
+  border-color: oklch(66% 0.13 40);
+  transform: translateY(-1px);
+}
+.quiz-option-letter {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  border-radius: 9px;
+  background: oklch(92% 0.03 80);
+  font-size: 12px;
+  font-weight: 900;
+}
+.quiz-option-mark {
+  margin-left: auto;
+  font-size: 20px;
+  font-weight: 900;
+}
+.quiz-option-correct {
+  border-color: oklch(60% 0.12 150);
+  background: oklch(94% 0.06 150);
+  color: oklch(35% 0.1 150);
+}
+.quiz-option-wrong {
+  border-color: oklch(64% 0.14 25);
+  background: oklch(95% 0.06 25);
+  color: oklch(42% 0.13 25);
+}
+.quiz-feedback {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 16px;
+  padding: 11px;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.quiz-feedback-correct {
+  background: oklch(94% 0.06 150);
+  color: oklch(35% 0.1 150);
+}
+.quiz-feedback-wrong {
+  background: oklch(95% 0.06 25);
+  color: oklch(42% 0.13 25);
+}
+.quiz-continue-button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  border: 0;
+  border-radius: 15px;
+  background: oklch(66% 0.13 40);
+  color: white;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flashcard-flipper {
+    transition-duration: 0.01ms;
+  }
+}
+
 .ai-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -117,6 +303,13 @@ body {
   border-radius: 20px;
   border: 2px dashed oklch(70% 0.17 42);
   background: oklch(96% 0.045 48);
+  position: relative;
+}
+.ai-file-picker-label {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 110px;
   cursor: pointer;
 }
 .sr-file-input {
@@ -142,9 +335,12 @@ body {
 }
 .ai-options {
   display: grid;
-  grid-template-columns: 140px 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 14px;
   margin-top: 18px;
+}
+.ai-focus-field {
+  grid-column: 1 / -1;
 }
 .ai-error {
   margin-top: 14px;
