@@ -10,6 +10,14 @@ const MAX_STREAK_BONUS = 15;
 const ACCURACY_WINDOW = 20;
 const STREAK_LOOKBACK_DAYS = 90;
 
+// A freshly-hatched pet is guaranteed 100 health for this long, no matter
+// how bad the account's actual backlog is — otherwise a brand-new pet
+// spawned right after a health-triggered death would just inherit the same
+// 0 health that killed its predecessor. Also governs death-eligibility
+// (see getActivePet in server/pet/growth.ts) — one unified grace window,
+// not two unexplained constants.
+export const PET_GRACE_HOURS = 24;
+
 export interface PetHealthInputs {
   overdueCount: number;
   overdueDaysSum: number;
@@ -69,8 +77,27 @@ export interface PetStats {
 export async function getPetStats(
   db: PrismaClient,
   userId: string,
+  petCreatedAt: Date,
 ): Promise<PetStats> {
   const now = new Date();
+
+  const lookbackStart = new Date(now);
+  lookbackStart.setDate(lookbackStart.getDate() - STREAK_LOOKBACK_DAYS);
+
+  const recentReviews = await db.reviewLog.findMany({
+    where: { card: { deck: { userId } }, reviewedAt: { gte: lookbackStart } },
+    select: { reviewedAt: true, grade: true },
+    orderBy: { reviewedAt: "desc" },
+  });
+
+  // Streak is always real, regardless of pet age — it isn't part of the
+  // "starts clean" guarantee below.
+  const streak = currentStreakDays(recentReviews.map((r) => r.reviewedAt));
+
+  const ageHours = (now.getTime() - petCreatedAt.getTime()) / (1000 * 60 * 60);
+  if (ageHours < PET_GRACE_HOURS) {
+    return { health: 100, streak };
+  }
 
   const overdueCards = await db.card.findMany({
     where: { deck: { userId }, dueAt: { lt: now } },
@@ -84,23 +111,12 @@ export async function getPetStats(
     0,
   );
 
-  const lookbackStart = new Date(now);
-  lookbackStart.setDate(lookbackStart.getDate() - STREAK_LOOKBACK_DAYS);
-
-  const recentReviews = await db.reviewLog.findMany({
-    where: { card: { deck: { userId } }, reviewedAt: { gte: lookbackStart } },
-    select: { reviewedAt: true, grade: true },
-    orderBy: { reviewedAt: "desc" },
-  });
-
   const accuracyWindow = recentReviews.slice(0, ACCURACY_WINDOW);
   const recentAccuracy =
     accuracyWindow.length > 0
       ? accuracyWindow.filter((r) => r.grade >= 3).length /
         accuracyWindow.length
       : null;
-
-  const streak = currentStreakDays(recentReviews.map((r) => r.reviewedAt));
 
   return {
     health: computeHealth({

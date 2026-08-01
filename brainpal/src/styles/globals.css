@@ -6,6 +6,14 @@
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+html {
+  /* Always reserve the scrollbar's width, even on screens short enough not
+     to need it (e.g. the village) — otherwise switching to a screen that
+     does need to scroll (e.g. Decks) narrows the viewport and shifts the
+     nav bar and centered content sideways. */
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
 }

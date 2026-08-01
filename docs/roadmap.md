@@ -1,7 +1,7 @@
 # Roadmap
 
-Status: early planning, no code written yet. This is a first pass at
-sequencing — expect it to shift once we start building.
+Status: Phase 0 and Phase 1 (MVP) are built; Phase 2 is in progress (pet
+lifecycle/growth landed, several other items still open — see below).
 
 ## Phase 0 — Foundations
 
@@ -13,28 +13,43 @@ sequencing — expect it to shift once we start building.
 - [x] Decide the pet stat model — single health stat, one pet per user,
       computed on-demand (see [architecture.md](./architecture.md))
 - [x] Rough data model: users, decks, cards, review history, pet state (see
-      [architecture.md](./architecture.md))
+      [architecture.md](./architecture.md); pet state model has since
+      evolved further, see Phase 2)
 
 ## Phase 1 — MVP (web)
 
 Goal: a single user can create a deck, review cards on an SRS schedule, and
 watch a pet react to that review history.
 
-- [ ] Deck/card CRUD (create, edit, delete decks and cards)
-- [ ] Review session flow (show due cards, capture pass/fail or graded
+- [x] Deck/card CRUD (create, edit, delete decks and cards)
+- [x] Review session flow (show due cards, capture pass/fail or graded
       recall, reschedule per SRS algorithm)
-- [ ] Pet state engine: compute pet stats from review history/overdue state
-- [ ] Pet UI: at minimum a visual state (sprite/mood) that reflects current
+- [x] Pet state engine: compute pet stats from review history/overdue state
+- [x] Pet UI: at minimum a visual state (sprite/mood) that reflects current
       stats
-- [ ] Persistence via Prisma + NextAuth accounts (local-only storage is off
+- [x] Persistence via Prisma + NextAuth accounts (local-only storage is off
       the table now that the stack is decided)
 
 ## Phase 2 — Depth
 
-- [ ] Pet growth/evolution stages tied to sustained streaks
+- [x] Pet growth/evolution stages — implemented as egg → child → teen →
+      adult, paced by aggregate review-interval maturity rather than
+      literal login/review streaks (see architecture.md)
 - [ ] Richer stat model if MVP shipped with a single bar
-- [ ] Neglect/recovery states (what happens if you abandon the app for weeks)
+- [~] Neglect/recovery states — death exists (health at 0 past a 24h grace
+      window retires the pet and spawns a new egg), but there's no
+      warning/rescue mechanic during that window; also no "abandon for
+      weeks" state beyond what health/growth already capture
 - [ ] Deck import/export or sharing
+- [ ] Decide the fate of `brainpal/src/app/_components/pet-app/` (unwired
+      modular component split sitting next to the live monolithic
+      `pet-app.tsx`) before it drifts further — finish wiring it in or
+      delete it
+- [ ] Village fixed-building navigation (study hall/decks/stats/settings as
+      in-scene links) — not started, still on the table if the tab bar
+      turns out not to be enough
+- [ ] Decide the optional-deadline-on-top-of-pace question (see
+      vision.md open questions)
 
 ## Phase 3 — Mobile (stretch)
 
@@ -49,5 +64,6 @@ Native/Flutter) deferred until this phase starts.
 
 - Multiplayer/social features — explicitly deferred, see vision doc open
   questions.
-- Multiple pets per user / per-deck pets — deferred until stat model is
-  settled.
+- Per-deck pets — considered, not adopted; a user has one active pet
+  (shared across all decks) plus a retired-pet history, see
+  [architecture.md](./architecture.md).

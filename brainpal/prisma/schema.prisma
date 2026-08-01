@@ -44,7 +44,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   decks         Deck[]
-  pet           Pet?
+  pets          Pet[]
 }
 
 model VerificationToken {
@@ -111,13 +111,34 @@ model ReviewLog {
   @@index([cardId])
 }
 
-// No stored stat columns — health is computed on-demand from ReviewLog +
-// Card.dueAt (see docs/architecture.md). One pet per user.
+// health is computed on-demand from ReviewLog + Card.dueAt, scoped to a
+// grace window relative to this row's createdAt (see server/pet/health.ts)
+// — it's not stored.
+//
+// A pet's life stage/level IS derived from stored state though: a
+// continuous sum of mastery progress across cards reviewed since this
+// row's createdAt (see server/pet/growth.ts). Reaching "adult" retires
+// this pet (retiredAt + retirementReason: "graduated") and a new blank one
+// is created — see review.submit. A pet can also die (retirementReason:
+// "died") if health hits 0 after its grace window — see getActivePet in
+// growth.ts. userId is not @unique because a user accumulates a history
+// of retired pets over time; the current one is whichever row has
+// retiredAt: null.
 model Pet {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  name      String?
-  createdAt DateTime @default(now())
+  id               String    @id @default(cuid())
+  userId           String
+  name             String?
+  // Chosen at onboarding via pet.setSpecies; null until then. String not
+  // enum — SQLite doesn't support native Prisma enums; validated with
+  // z.enum() at the tRPC boundary instead.
+  species          String?
+  retiredAt        DateTime?
+  // "graduated" | "died", set only alongside retiredAt. Same not-a-native-
+  // enum reasoning as species.
+  retirementReason String?
+  createdAt        DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
