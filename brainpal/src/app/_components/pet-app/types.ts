@@ -12,6 +12,10 @@ export type RetiredPet = RouterOutputs["pet"]["village"][number];
 
 export interface PetState {
   name: string;
+  // False while `name` is still the "{Species} Hatchling" placeholder
+  // (see petDisplayName in signed-in-pet-app.tsx) — lets screens avoid
+  // redundant phrasing like "Fox Hatchling the Fox".
+  hasCustomName: boolean;
   species: Species;
   health: number;
   streak: number;

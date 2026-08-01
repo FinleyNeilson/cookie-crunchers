@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   CARD_BG,
@@ -14,7 +14,18 @@ import {
 } from "~/app/_components/pet-app/constants";
 import { type DeckSummary } from "~/app/_components/pet-app/types";
 
-const PAGE_SIZE = 6;
+// Fallback used only before the grid has measured itself (see
+// useGridPageSize below) — doesn't need to be exact.
+const DEFAULT_PAGE_SIZE = 9;
+
+// Must match the grid's own CSS below (gridTemplateColumns minmax + gap).
+const GRID_GAP = 14;
+const CARD_MIN_WIDTH = 280;
+// A fixed estimate of DeckCard's rendered height, not a measurement of an
+// actual rendered card — see the note in useGridPageSize on why measuring
+// a real card is a trap. Matches the card's fixed padding/font-size/row
+// spacing below; nudge this if that layout changes materially.
+const CARD_HEIGHT_ESTIMATE = 130;
 
 type FilterKey = "all" | "due" | "inProgress" | "mastered";
 const FILTERS: { key: FilterKey; label: string }[] = [
@@ -26,8 +37,51 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 
 type SortKey = "recentlyStudied" | "name" | "dueCount" | "level";
 
-function daysFromNow(date: Date): number {
-  return Math.max(1, Math.ceil((date.getTime() - Date.now()) / 86_400_000));
+// Measures how much space the grid has (itself sized by flexbox to fill
+// the page) and reports how many card columns/rows fit in it, so "how many
+// decks per page" is always however many fill the screen on any viewport,
+// instead of a static guess that's too many on some screens and leaves
+// empty space on others.
+//
+// Deliberately does NOT measure a rendered card's actual width to compute
+// columns: gridTemplateColumns uses `1fr`, which stretches cards to fill
+// however many columns got chosen. Measuring that stretched width and
+// feeding it back is a self-reinforcing trap — fewer columns makes cards
+// wider, which (mis)measured, computes even fewer columns next time, until
+// it bottoms out. Using the CSS's own fixed minimum (CARD_MIN_WIDTH) is
+// exactly the number auto-fill itself uses to decide column count, so it
+// can't be thrown off by how the previous render happened to stretch.
+function useGridPageSize(gridRef: React.RefObject<HTMLDivElement | null>) {
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+
+  useLayoutEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    function recompute() {
+      const el = gridRef.current;
+      if (!el) return;
+
+      const columns = Math.max(
+        1,
+        Math.floor((el.clientWidth + GRID_GAP) / (CARD_MIN_WIDTH + GRID_GAP)),
+      );
+      const rows = Math.max(
+        1,
+        Math.floor(
+          (el.clientHeight + GRID_GAP) / (CARD_HEIGHT_ESTIMATE + GRID_GAP),
+        ),
+      );
+      setPageSize(columns * rows);
+    }
+
+    recompute();
+    const observer = new ResizeObserver(recompute);
+    observer.observe(grid);
+    return () => observer.disconnect();
+  }, [gridRef]);
+
+  return pageSize;
 }
 
 export function DecksScreen({
@@ -59,6 +113,8 @@ export function DecksScreen({
   const [filter, setFilter] = useState<FilterKey>("all");
   const [sort, setSort] = useState<SortKey>("recentlyStudied");
   const [page, setPage] = useState(1);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const pageSize = useGridPageSize(gridRef);
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -94,10 +150,10 @@ export function DecksScreen({
     }
   }, [filtered, sort]);
 
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const pageStart = (currentPage - 1) * PAGE_SIZE;
-  const pageDecks = sorted.slice(pageStart, pageStart + PAGE_SIZE);
+  const pageStart = (currentPage - 1) * pageSize;
+  const pageDecks = sorted.slice(pageStart, pageStart + pageSize);
 
   function updateFilter(key: FilterKey) {
     setFilter(key);
@@ -119,7 +175,14 @@ export function DecksScreen({
   };
 
   return (
-    <>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -127,27 +190,17 @@ export function DecksScreen({
           justifyContent: "space-between",
           flexWrap: "wrap",
           gap: 16,
+          flexShrink: 0,
         }}
       >
-        <div>
-          <div
-            style={{
-              fontFamily: "'Baloo 2', sans-serif",
-              fontWeight: 800,
-              fontSize: 30,
-            }}
-          >
-            Your decks
-          </div>
-          <div
-            style={{
-              fontSize: 14,
-              color: "oklch(48% 0.04 255 / 0.6)",
-              marginTop: 4,
-            }}
-          >
-            Grow each subject from first steps to mastery.
-          </div>
+        <div
+          style={{
+            fontFamily: "'Baloo 2', sans-serif",
+            fontWeight: 800,
+            fontSize: 30,
+          }}
+        >
+          Your decks
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button
@@ -193,6 +246,7 @@ export function DecksScreen({
             borderRadius: 18,
             padding: 16,
             border: `2px solid ${CARD_LINE}`,
+            flexShrink: 0,
           }}
         >
           <input
@@ -248,7 +302,8 @@ export function DecksScreen({
           flexWrap: "wrap",
           alignItems: "center",
           gap: 12,
-          marginTop: 22,
+          marginTop: 16,
+          flexShrink: 0,
         }}
       >
         <div style={{ position: "relative", flex: "1 1 240px", minWidth: 200 }}>
@@ -326,24 +381,29 @@ export function DecksScreen({
       {sorted.length === 0 ? (
         <div
           style={{
-            marginTop: 26,
+            marginTop: 18,
             background: CARD_BG,
             borderRadius: 22,
             padding: 32,
             border: `2px solid ${CARD_LINE}`,
             textAlign: "center",
             color: "oklch(48% 0.04 255 / 0.6)",
+            flexShrink: 0,
           }}
         >
           No decks match {search ? `"${search}"` : "this filter"}.
         </div>
       ) : (
         <div
+          ref={gridRef}
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))",
-            gap: 18,
-            marginTop: 26,
+            gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))",
+            alignContent: "start",
+            gap: 14,
+            marginTop: 18,
+            flex: 1,
+            minHeight: 0,
           }}
         >
           {pageDecks.map((deck) => (
@@ -364,9 +424,10 @@ export function DecksScreen({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            marginTop: 26,
+            marginTop: 18,
             flexWrap: "wrap",
             gap: 12,
+            flexShrink: 0,
           }}
         >
           <div
@@ -376,7 +437,7 @@ export function DecksScreen({
               color: "oklch(48% 0.04 255 / 0.6)",
             }}
           >
-            {pageStart + 1}-{Math.min(pageStart + PAGE_SIZE, sorted.length)} of{" "}
+            {pageStart + 1}-{Math.min(pageStart + pageSize, sorted.length)} of{" "}
             {sorted.length} decks
           </div>
           {totalPages > 1 && (
@@ -406,7 +467,7 @@ export function DecksScreen({
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -460,9 +521,6 @@ function DeckCard({
   const badgeLabel = deck.dueCards > 0 ? `${deck.dueCards} due` : "All done";
   const badgeBg = deck.dueCards > 0 ? "oklch(90% 0.08 55)" : MASTERED_GREEN_BG;
   const badgeColor = deck.dueCards > 0 ? "oklch(46% 0.12 40)" : MASTERED_GREEN;
-  const nextReviewDays = deck.nextDueAt
-    ? daysFromNow(new Date(deck.nextDueAt))
-    : null;
   const xpPct =
     deck.xpToNextLevel > 0
       ? Math.round((deck.xpInLevel / deck.xpToNextLevel) * 100)
@@ -472,8 +530,8 @@ function DeckCard({
     <div
       style={{
         background: CARD_BG,
-        borderRadius: 22,
-        padding: 22,
+        borderRadius: 16,
+        padding: 14,
         border: `2px solid ${CARD_LINE}`,
         boxShadow: "0 6px 18px oklch(35% 0.05 60 / 0.08)",
       }}
@@ -490,7 +548,7 @@ function DeckCard({
           style={{
             fontFamily: "'Baloo 2', sans-serif",
             fontWeight: 700,
-            fontSize: 17,
+            fontSize: 15,
           }}
         >
           {deck.name}
@@ -500,37 +558,14 @@ function DeckCard({
             background: badgeBg,
             color: badgeColor,
             fontWeight: 800,
-            fontSize: 12,
-            padding: "4px 10px",
-            borderRadius: 12,
+            fontSize: 11,
+            padding: "3px 8px",
+            borderRadius: 10,
             whiteSpace: "nowrap",
           }}
         >
           {badgeLabel}
         </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          marginTop: 2,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: "oklch(48% 0.04 255 / 0.6)",
-          }}
-        >
-          {deck.totalCards} cards
-        </div>
-        {nextReviewDays !== null && (
-          <div style={{ fontSize: 12, fontWeight: 700, color: MASTERED_GREEN }}>
-            Next review in {nextReviewDays} day{nextReviewDays === 1 ? "" : "s"}
-          </div>
-        )}
       </div>
 
       <div
@@ -538,27 +573,25 @@ function DeckCard({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "baseline",
-          marginTop: 16,
+          marginTop: 4,
+          fontSize: 12,
           fontWeight: 700,
-          fontSize: 13,
         }}
       >
-        <span>
-          {deck.isMastered
-            ? `Level ${deck.level}`
-            : `Level ${deck.level} → Level ${deck.level + 1}`}
+        <span style={{ color: "oklch(48% 0.04 255 / 0.6)" }}>
+          {deck.totalCards} cards · Level {deck.level}
         </span>
         <span style={{ color: "oklch(48% 0.04 255 / 0.6)" }}>
-          {deck.xpInLevel.toLocaleString()} /{" "}
-          {deck.xpToNextLevel.toLocaleString()} XP
+          {deck.xpInLevel.toLocaleString()}/{deck.xpToNextLevel.toLocaleString()}{" "}
+          XP
         </span>
       </div>
       <div
         style={{
-          height: 8,
-          borderRadius: 5,
+          height: 6,
+          borderRadius: 4,
           background: "oklch(91% 0.02 80)",
-          marginTop: 6,
+          marginTop: 4,
           overflow: "hidden",
         }}
       >
@@ -567,67 +600,23 @@ function DeckCard({
             height: "100%",
             width: `${xpPct}%`,
             background: deck.isMastered ? MASTERED_GREEN : GOLDEN,
-            borderRadius: 5,
+            borderRadius: 4,
           }}
         />
       </div>
-
-      {deck.isMastered ? (
-        <div
-          style={{
-            marginTop: 14,
-            background: MASTERED_GREEN_BG,
-            borderRadius: 14,
-            padding: "10px 14px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <div
-              style={{ fontWeight: 800, fontSize: 14, color: MASTERED_GREEN }}
-            >
-              Mastered
-            </div>
-            <div style={{ fontSize: 12, color: "oklch(48% 0.04 255 / 0.6)" }}>
-              Level 10 reached
-            </div>
-          </div>
-          <span style={{ fontSize: 20 }}>⭐</span>
-        </div>
-      ) : (
-        <div
-          style={{
-            marginTop: 14,
-            background: "oklch(94% 0.03 80)",
-            borderRadius: 14,
-            padding: "10px 14px",
-          }}
-        >
-          <div style={{ fontWeight: 800, fontSize: 14 }}>
-            {deck.levelsToMastery} level{deck.levelsToMastery === 1 ? "" : "s"}{" "}
-            to Mastery
-          </div>
-          <div style={{ fontSize: 12, color: "oklch(48% 0.04 255 / 0.6)" }}>
-            Mastery at Level 10
-          </div>
-        </div>
-      )}
-
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         {deck.dueCards > 0 ? (
           <button
             onClick={onStudy}
             style={{
               flex: 1,
-              padding: 12,
+              padding: 9,
               border: "none",
-              borderRadius: 14,
+              borderRadius: 12,
               background: MAROON,
               color: "oklch(98% 0.01 90)",
               fontWeight: 800,
-              fontSize: 14,
+              fontSize: 13,
               cursor: "pointer",
             }}
           >
@@ -639,13 +628,13 @@ function DeckCard({
             title="Study these cards even though nothing's due yet — still submits real reviews"
             style={{
               flex: 1,
-              padding: 12,
+              padding: 9,
               border: `2px solid ${CARD_LINE}`,
-              borderRadius: 14,
+              borderRadius: 12,
               background: "transparent",
               color: INK,
               fontWeight: 800,
-              fontSize: 14,
+              fontSize: 13,
               cursor: "pointer",
             }}
           >
@@ -656,13 +645,13 @@ function DeckCard({
             disabled
             style={{
               flex: 1,
-              padding: 12,
+              padding: 9,
               border: "none",
-              borderRadius: 14,
+              borderRadius: 12,
               background: "oklch(91% 0.02 80)",
               color: "oklch(60% 0.02 255 / 0.5)",
               fontWeight: 800,
-              fontSize: 14,
+              fontSize: 13,
               cursor: "default",
             }}
           >
@@ -672,9 +661,9 @@ function DeckCard({
         <button
           onClick={onManage}
           style={{
-            padding: "12px 16px",
+            padding: "9px 14px",
             border: `2px solid ${CARD_LINE}`,
-            borderRadius: 14,
+            borderRadius: 12,
             background: "transparent",
             color: INK,
             fontWeight: 800,

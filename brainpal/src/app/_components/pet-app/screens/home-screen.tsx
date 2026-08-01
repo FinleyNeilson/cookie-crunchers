@@ -149,7 +149,7 @@ export function HomeScreen({
                 fontSize: 18,
               }}
             >
-              {pet.name} the {speciesLabel}
+              {pet.hasCustomName ? `${pet.name} the ${speciesLabel}` : pet.name}
             </div>
             <div
               style={{

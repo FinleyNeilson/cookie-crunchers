@@ -46,7 +46,17 @@ export function Egg({ size = 108 }: { size?: number }) {
       <img
         src="/pets/egg.png"
         alt="Egg"
-        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          // Source art is only 24x22px, scaled up ~7x here — smooth
+          // (the default) interpolation blends its hard edge against
+          // transparency into a faint white fringe. Crisp nearest-neighbor
+          // scaling removes that and matches the pixel-art look already
+          // visible at this size.
+          imageRendering: "pixelated",
+        }}
       />
     </div>
   );

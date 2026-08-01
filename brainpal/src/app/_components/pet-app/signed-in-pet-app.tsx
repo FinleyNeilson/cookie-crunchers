@@ -37,6 +37,18 @@ import {
 } from "~/app/_components/pet-app/types";
 import { api } from "~/trpc/react";
 
+// A pet has no name until NamePetScreen sets one, right after it hatches —
+// while it's still an egg, showing a fixed placeholder like "Ember" would
+// misleadingly imply it's already been named. "{Species} Hatchling" makes
+// clear it hasn't been named yet.
+function petDisplayName(
+  name: string | null | undefined,
+  species: Species | null | undefined,
+): string {
+  if (name) return name;
+  return species ? `${SPECIES[species].label} Hatchling` : "Your pet";
+}
+
 export function SignedInPetApp() {
   const utils = api.useUtils();
   const decksQuery = api.deck.list.useQuery();
@@ -206,7 +218,10 @@ export function SignedInPetApp() {
       const petResult = await utils.pet.get.fetch();
       void utils.deck.list.invalidate();
 
-      const petName = petQuery.data?.name ?? "Ember";
+      const petName = petDisplayName(
+        petQuery.data?.name,
+        petQuery.data?.species as Species | null | undefined,
+      );
       const message =
         accuracy >= 80
           ? `${petName} is thriving! Great study session.`
@@ -266,7 +281,8 @@ export function SignedInPetApp() {
 
   const decks: DeckSummary[] = decksQuery.data;
   const pet: PetState = {
-    name: petQuery.data.name ?? "Ember",
+    name: petDisplayName(petQuery.data.name, petQuery.data.species as Species),
+    hasCustomName: !!petQuery.data.name,
     // Guarded above: petQuery.data.species is non-null here, and only ever
     // set via setSpecies, which validates against the same Species union.
     species: petQuery.data.species as Species,
@@ -375,6 +391,16 @@ export function SignedInPetApp() {
       <div
         style={{
           flex: screen === "home" ? "0 0 auto" : "1 1 auto",
+          // Contain overflow inside this panel instead of growing the page:
+          // minHeight: 0 lets a flex item actually shrink to its allotted
+          // space (its default min-height is "auto", which otherwise lets
+          // content force the flex item — and the whole page — taller).
+          // Without this, a screen with more content than fits pushes the
+          // body's own scrollbar in and out as you navigate, which shifts
+          // the nav bar sideways (scrollbar-gutter in globals.css only
+          // covers the *width* side of that; this covers not needing it).
+          minHeight: screen === "home" ? undefined : 0,
+          overflowY: screen === "home" ? undefined : "auto",
           padding: screen === "home" ? 0 : "32px clamp(20px,4vw,56px) 48px",
           maxWidth: 1120,
           margin: "0 auto",
