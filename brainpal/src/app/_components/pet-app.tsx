@@ -1,49 +1,37 @@
 "use client";
 
+import { signIn, signOut, useSession } from "next-auth/react";
 import { useState } from "react";
+
+import { api, type RouterOutputs } from "~/trpc/react";
 
 // Ported from the "Hatchly" design prototype (Pet-Powered Flashcard App.zip),
 // restyled to the cozy sticker look in docs/assets/pet-style-reference.png
-// (cream body, thick navy outline, blush cheeks). Mock data only — no
-// persistence yet. This is the reference UI for the SRS-driven pet loop
-// described in docs/vision.md.
+// (cream body, thick navy outline, blush cheeks). Wired to the real backend
+// (deck/card/review/pet routers) — see docs/vision.md for the SRS-driven
+// pet loop this implements. The stats-screen heatmap and 7-session accuracy
+// chart are still mock placeholders — there's no historical-aggregation
+// endpoint for those yet.
 
 type Species = "fox" | "owl" | "bunny" | "otter";
 type Screen = "home" | "decks" | "review" | "results" | "stats";
 type Grade = "again" | "hard" | "good" | "easy";
 
-interface CardQA {
-  q: string;
-  a: string;
-}
-
-interface Deck {
-  id: number;
-  name: string;
-  source: string;
-  total: number;
-  due: number;
-  cards: CardQA[];
-}
+type DeckSummary = RouterOutputs["deck"]["list"][number];
+type ReviewCard = RouterOutputs["review"]["due"][number];
 
 interface PetState {
   name: string;
   species: Species;
-  xp: number;
-  happiness: number;
-  energy: number;
-  fullness: number;
+  health: number;
   streak: number;
-  accessories: string[];
 }
 
 interface SessionResults {
   correct: number;
   total: number;
   accuracy: number;
-  xpGained: number;
-  leveledUp: boolean;
-  newAccessory: string | null;
+  healthDelta: number;
   celebrate: boolean;
   message: string;
 }
@@ -67,249 +55,226 @@ const SPECIES: Record<Species, { label: string; color: string }> = {
   otter: { label: "Otter", color: SAGE_DEEP },
 };
 
-function stageForXp(xp: number) {
-  if (xp < 20) return { key: "egg", label: "Egg", size: 0 };
-  if (xp < 60) return { key: "hatchling", label: "Hatchling", size: 90 };
-  if (xp < 150) return { key: "juvenile", label: "Juvenile", size: 120 };
-  return { key: "adult", label: "Adult", size: 150 };
-}
+// SM-2 quality grade (0-5) each review button maps to — see server/srs/sm2.ts.
+const GRADE_TO_SM2: Record<Grade, number> = {
+  again: 1,
+  hard: 3,
+  good: 4,
+  easy: 5,
+};
 
-const MOCK_DECKS: Deck[] = [
-  {
-    id: 1,
-    name: "Cell Biology — Ch.4",
-    source: "Uploaded slides",
-    total: 42,
-    due: 12,
-    cards: [
-      {
-        q: "What organelle produces most of a cell's ATP?",
-        a: "The mitochondrion.",
-      },
-      {
-        q: "What is the semi-fluid substance inside the cell membrane called?",
-        a: "Cytoplasm.",
-      },
-      {
-        q: "Which structure controls what enters and exits the cell?",
-        a: "The cell membrane (plasma membrane).",
-      },
-      {
-        q: "What process do plant cells use to convert light into energy?",
-        a: "Photosynthesis.",
-      },
-      { q: "What organelle contains the cell's DNA?", a: "The nucleus." },
-    ],
-  },
-  {
-    id: 2,
-    name: "Spanish Vocab: Travel",
-    source: "Created by you",
-    total: 30,
-    due: 6,
-    cards: [
-      { q: '"El aeropuerto"', a: "The airport." },
-      {
-        q: '"¿Dónde está la estación de tren?"',
-        a: "Where is the train station?",
-      },
-      { q: '"Una maleta"', a: "A suitcase." },
-      { q: '"Reservar una habitación"', a: "To book a room." },
-    ],
-  },
-  {
-    id: 3,
-    name: "Organic Chem Reactions",
-    source: "Uploaded slides",
-    total: 55,
-    due: 0,
-    cards: [
-      {
-        q: "What type of reaction adds atoms across a double bond?",
-        a: "An addition reaction.",
-      },
-      {
-        q: "What is produced when an alcohol is oxidized fully?",
-        a: "A carboxylic acid (via an aldehyde).",
-      },
-    ],
-  },
+const DECK_ACCENT_PALETTE: { bg: string; color: string }[] = [
+  { bg: "oklch(90% 0.07 88)", color: "oklch(46% 0.1 85)" },
+  { bg: "oklch(90% 0.08 20)", color: "oklch(45% 0.1 20)" },
+  { bg: "oklch(88% 0.07 150)", color: "oklch(42% 0.08 150)" },
 ];
 
-const XP_MAP: Record<Grade, number> = { again: 2, hard: 6, good: 12, easy: 16 };
-const HAPPINESS_MAP: Record<Grade, number> = {
-  again: -8,
-  hard: 1,
-  good: 4,
-  easy: 6,
-};
-const ENERGY_MAP: Record<Grade, number> = {
-  again: -5,
-  hard: 1,
-  good: 3,
-  easy: 4,
-};
-const FULLNESS_MAP: Record<Grade, number> = {
-  again: -10,
-  hard: 2,
-  good: 5,
-  easy: 6,
-};
-
-const DECK_ACCENTS: Record<number, { bg: string; color: string }> = {
-  1: { bg: "oklch(90% 0.07 88)", color: "oklch(46% 0.1 85)" },
-  2: { bg: "oklch(90% 0.08 20)", color: "oklch(45% 0.1 20)" },
-  3: { bg: "oklch(88% 0.07 150)", color: "oklch(42% 0.08 150)" },
-};
-
-const clamp = (n: number) => Math.max(0, Math.min(100, n));
-
 export function PetApp() {
+  const { data: session, status } = useSession();
+
+  if (status === "loading") return <CenteredMessage>Loading…</CenteredMessage>;
+  if (!session) return <SignInScreen />;
+  return <SignedInPetApp />;
+}
+
+function CenteredMessage({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "'Nunito', sans-serif",
+        color: INK,
+        background: PAPER,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SignInScreen() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 16,
+        fontFamily: "'Nunito', sans-serif",
+        background: PAPER,
+        color: INK,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "'Baloo 2', sans-serif",
+          fontWeight: 800,
+          fontSize: 28,
+        }}
+      >
+        🥚 Hatchly
+      </div>
+      <div style={{ fontSize: 15, color: "oklch(48% 0.04 255 / 0.7)" }}>
+        Sign in to start studying and keep your pet happy.
+      </div>
+      <button
+        onClick={() => signIn("google")}
+        style={{
+          padding: "14px 28px",
+          border: "none",
+          borderRadius: 16,
+          background: TERRACOTTA,
+          color: "oklch(98% 0.01 90)",
+          fontFamily: "'Baloo 2', sans-serif",
+          fontWeight: 700,
+          fontSize: 16,
+          cursor: "pointer",
+        }}
+      >
+        Sign in with Google
+      </button>
+    </div>
+  );
+}
+
+function SignedInPetApp() {
+  const utils = api.useUtils();
+  const decksQuery = api.deck.list.useQuery();
+  const petQuery = api.pet.get.useQuery();
+  const submitReview = api.review.submit.useMutation();
+
   const [screen, setScreen] = useState<Screen>("home");
   const [toastMsg, setToastMsg] = useState<string | false>(false);
-  const [decks, setDecks] = useState<Deck[]>(MOCK_DECKS);
-  const [reviewDeckId, setReviewDeckId] = useState<number | null>(null);
-  const [reviewCards, setReviewCards] = useState<CardQA[]>([]);
+  const [reviewCards, setReviewCards] = useState<ReviewCard[]>([]);
   const [reviewIndex, setReviewIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
-  const [sessionXp, setSessionXp] = useState(0);
+  const [healthAtSessionStart, setHealthAtSessionStart] = useState(0);
   const [results, setResults] = useState<SessionResults | null>(null);
-  const [pet, setPet] = useState<PetState>({
-    name: "Ember",
-    species: "fox",
-    xp: 65,
-    happiness: 72,
-    energy: 58,
-    fullness: 60,
-    streak: 6,
-    accessories: ["bow"],
-  });
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   function toast(msg: string) {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(false), 2200);
   }
 
-  function startReview(deckId: number) {
-    const deck = decks.find((d) => d.id === deckId);
-    if (!deck || deck.due === 0) return;
-    const cards = deck.cards.slice(
-      0,
-      Math.max(1, Math.min(deck.due, deck.cards.length)),
-    );
-    setReviewDeckId(deckId);
-    setReviewCards(cards);
+  async function startReview(deckId: string) {
+    const due = await utils.review.due.fetch({ deckId });
+    if (due.length === 0) return;
+    setReviewCards(due);
     setReviewIndex(0);
     setFlipped(false);
     setSessionCorrect(0);
     setSessionTotal(0);
-    setSessionXp(0);
+    setHealthAtSessionStart(petQuery.data?.health ?? 0);
     setScreen("review");
   }
 
   function goStudyNow() {
-    const target = decks.find((d) => d.due > 0);
-    if (target) startReview(target.id);
+    const target = decksQuery.data?.find((d) => d.dueCards > 0);
+    if (target) void startReview(target.id);
     else toast("All caught up — no cards due right now!");
   }
 
-  function grade(quality: Grade) {
+  async function grade(quality: Grade) {
+    const card = reviewCards[reviewIndex];
+    if (!card || isSubmittingReview) return;
+
+    setIsSubmittingReview(true);
+    try {
+      await submitReview.mutateAsync({
+        cardId: card.id,
+        grade: GRADE_TO_SM2[quality],
+      });
+    } finally {
+      setIsSubmittingReview(false);
+    }
+
     const correct = quality !== "again";
-    const prevStage = stageForXp(pet.xp).key;
-    const newXp = pet.xp + XP_MAP[quality];
-    const newStage = stageForXp(newXp).key;
-    const leveledUp = newStage !== prevStage;
-
-    const nextPet: PetState = {
-      ...pet,
-      xp: newXp,
-      happiness: clamp(pet.happiness + HAPPINESS_MAP[quality]),
-      energy: clamp(pet.energy + ENERGY_MAP[quality]),
-      fullness: clamp(pet.fullness + FULLNESS_MAP[quality]),
-    };
-
     const newSessionCorrect = sessionCorrect + (correct ? 1 : 0);
     const newSessionTotal = sessionTotal + 1;
-    const newSessionXp = sessionXp + XP_MAP[quality];
     const nextIndex = reviewIndex + 1;
 
     if (nextIndex >= reviewCards.length) {
       const accuracy = Math.round((newSessionCorrect / newSessionTotal) * 100);
-      let newAccessory: string | null = null;
-      const accessories = [...nextPet.accessories];
-      if (
-        leveledUp &&
-        newStage === "juvenile" &&
-        !accessories.includes("bow")
-      ) {
-        accessories.push("bow");
-        newAccessory = "Bow";
-      }
-      if (leveledUp && newStage === "adult" && !accessories.includes("scarf")) {
-        accessories.push("scarf");
-        newAccessory = "Scarf";
-      }
 
-      setDecks((prev) =>
-        prev.map((d) =>
-          d.id === reviewDeckId
-            ? { ...d, due: Math.max(0, d.due - newSessionTotal) }
-            : d,
-        ),
-      );
+      await utils.pet.get.invalidate();
+      const petResult = await utils.pet.get.fetch();
+      void utils.deck.list.invalidate();
 
+      const petName = petQuery.data?.name ?? "Ember";
       const message =
         accuracy >= 80
-          ? `${nextPet.name} is thriving! Great study session.`
+          ? `${petName} is thriving! Great study session.`
           : accuracy >= 50
-            ? `${nextPet.name} appreciates the effort — keep it up.`
-            : `${nextPet.name} needs a bit more practice tomorrow.`;
+            ? `${petName} appreciates the effort — keep it up.`
+            : `${petName} needs a bit more practice tomorrow.`;
 
-      setPet({ ...nextPet, accessories, streak: nextPet.streak + 1 });
       setResults({
         correct: newSessionCorrect,
         total: newSessionTotal,
         accuracy,
-        xpGained: newSessionXp,
-        leveledUp,
-        newAccessory,
+        healthDelta: petResult.health - healthAtSessionStart,
         celebrate: accuracy >= 60,
         message,
       });
       setScreen("results");
     } else {
-      setPet(nextPet);
       setSessionCorrect(newSessionCorrect);
       setSessionTotal(newSessionTotal);
-      setSessionXp(newSessionXp);
       setReviewIndex(nextIndex);
       setFlipped(false);
     }
   }
 
-  const speciesInfo = SPECIES[pet.species];
-  const stage = stageForXp(pet.xp);
-  const totalDue = decks.reduce((sum, d) => sum + d.due, 0);
-  const mood =
-    pet.happiness >= 55 ? "happy" : pet.happiness >= 30 ? "neutral" : "sad";
-  const isNeglected = pet.fullness < 30 || pet.happiness < 30;
+  if (decksQuery.isPending || petQuery.isPending) {
+    return <CenteredMessage>Loading your pet…</CenteredMessage>;
+  }
+  if (decksQuery.isError || petQuery.isError) {
+    return (
+      <CenteredMessage>Something went wrong loading your data.</CenteredMessage>
+    );
+  }
 
-  const deckCards = decks.map((d) => {
-    const accent = DECK_ACCENTS[d.id] ?? DECK_ACCENTS[1]!;
-    const progressPct = Math.round(((d.total - d.due) / d.total) * 100);
+  const decks: DeckSummary[] = decksQuery.data;
+  // Species isn't part of the data model yet (Pet has no species column) —
+  // fixed locally until that's decided.
+  const pet: PetState = {
+    name: petQuery.data.name ?? "Ember",
+    species: "fox",
+    health: petQuery.data.health,
+    streak: petQuery.data.streak,
+  };
+
+  const speciesInfo = SPECIES[pet.species];
+  const totalDue = decks.reduce((sum, d) => sum + d.dueCards, 0);
+  const mood =
+    pet.health >= 55 ? "happy" : pet.health >= 30 ? "neutral" : "sad";
+  const isNeglected = pet.health < 30;
+
+  const deckCards = decks.map((d, i) => {
+    const accent = DECK_ACCENT_PALETTE[i % DECK_ACCENT_PALETTE.length]!;
+    const progressPct =
+      d.totalCards > 0
+        ? Math.round(((d.totalCards - d.dueCards) / d.totalCards) * 100)
+        : 0;
     return {
       deck: d,
       progressPct,
-      dueLabel: d.due > 0 ? `${d.due} due` : "All done",
-      badgeBg: d.due > 0 ? accent.bg : "oklch(90% 0.015 150)",
-      badgeColor: d.due > 0 ? accent.color : "oklch(42% 0.05 150)",
-      studyDisabled: d.due === 0,
-      studyBtnBg: d.due > 0 ? accent.color : "oklch(91% 0.02 80)",
+      dueLabel: d.dueCards > 0 ? `${d.dueCards} due` : "All done",
+      badgeBg: d.dueCards > 0 ? accent.bg : "oklch(90% 0.015 150)",
+      badgeColor: d.dueCards > 0 ? accent.color : "oklch(42% 0.05 150)",
+      studyDisabled: d.dueCards === 0,
+      studyBtnBg: d.dueCards > 0 ? accent.color : "oklch(91% 0.02 80)",
       studyBtnColor:
-        d.due > 0 ? "oklch(98% 0.01 90)" : "oklch(50% 0.03 255 / 0.5)",
-      studyBtnLabel: d.due > 0 ? "Study" : "Caught up",
+        d.dueCards > 0 ? "oklch(98% 0.01 90)" : "oklch(50% 0.03 255 / 0.5)",
+      studyBtnLabel: d.dueCards > 0 ? "Study" : "Caught up",
     };
   });
 
@@ -328,25 +293,6 @@ export function PetApp() {
     ];
     return shades[Math.min(level, 3)]!;
   });
-
-  const stages = [
-    { key: "egg", initial: "E", label: "Egg" },
-    { key: "hatchling", initial: "H", label: "Hatch" },
-    { key: "juvenile", initial: "J", label: "Juvenile" },
-    { key: "adult", initial: "A", label: "Adult" },
-  ];
-  const stageOrder = ["egg", "hatchling", "juvenile", "adult"];
-  const currentStageIdx = stageOrder.indexOf(stage.key);
-  const timeline = stages.map((t, i) => ({
-    ...t,
-    bg: i <= currentStageIdx ? speciesInfo.color : "oklch(92% 0.02 80)",
-    color:
-      i <= currentStageIdx ? "oklch(98% 0.01 90)" : "oklch(60% 0.03 255 / 0.5)",
-  }));
-  const accessoryLabels: Record<string, string> = {
-    bow: "Bow",
-    scarf: "Scarf",
-  };
 
   const navItems: { key: Screen; label: string }[] = [
     { key: "home", label: "Village" },
@@ -426,29 +372,45 @@ export function PetApp() {
             </button>
           ))}
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "oklch(90% 0.09 55)",
-            padding: "8px 14px",
-            borderRadius: 14,
-            whiteSpace: "nowrap",
-          }}
-        >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
             style={{
-              width: 9,
-              height: 9,
-              borderRadius: "50%",
-              background: "oklch(70% 0.15 45)",
-              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              background: "oklch(90% 0.09 55)",
+              padding: "8px 14px",
+              borderRadius: 14,
+              whiteSpace: "nowrap",
             }}
-          />
-          <div style={{ fontWeight: 800, fontSize: 13 }}>
-            {pet.streak}-day streak
+          >
+            <div
+              style={{
+                width: 9,
+                height: 9,
+                borderRadius: "50%",
+                background: "oklch(70% 0.15 45)",
+                flexShrink: 0,
+              }}
+            />
+            <div style={{ fontWeight: 800, fontSize: 13 }}>
+              {pet.streak}-day streak
+            </div>
           </div>
+          <button
+            onClick={() => void signOut()}
+            style={{
+              border: "none",
+              background: "transparent",
+              color: "oklch(45% 0.04 255 / 0.55)",
+              fontWeight: 700,
+              fontSize: 13,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Sign out
+          </button>
         </div>
       </div>
 
@@ -559,7 +521,7 @@ export function PetApp() {
                   hasDue={!studyDisabled}
                   accentColor={badgeColor}
                   accentBg={badgeBg}
-                  onClick={() => startReview(deck.id)}
+                  onClick={() => void startReview(deck.id)}
                 />
               ),
             )}
@@ -582,17 +544,12 @@ export function PetApp() {
                   animation: "petBounce 2.6s ease-in-out infinite",
                 }}
               >
-                {stage.key === "egg" ? (
-                  <Egg />
-                ) : (
-                  <PetFace
-                    species={pet.species}
-                    color={speciesInfo.color}
-                    size={stage.size}
-                    hasBow={pet.accessories.includes("bow")}
-                    mood={mood}
-                  />
-                )}
+                <PetFace
+                  species={pet.species}
+                  color={speciesInfo.color}
+                  size={150}
+                  mood={mood}
+                />
               </div>
               <div
                 style={{
@@ -622,7 +579,7 @@ export function PetApp() {
                     letterSpacing: "0.06em",
                   }}
                 >
-                  {stage.label} · {pet.xp} XP
+                  {pet.health}% health
                 </div>
               </div>
             </div>
@@ -636,7 +593,7 @@ export function PetApp() {
                   hasDue={!studyDisabled}
                   accentColor={badgeColor}
                   accentBg={badgeBg}
-                  onClick={() => startReview(deck.id)}
+                  onClick={() => void startReview(deck.id)}
                 />
               ),
             )}
@@ -656,9 +613,7 @@ export function PetApp() {
             }}
           >
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <StatBar label="Happiness" value={pet.happiness} hue={20} />
-              <StatBar label="Energy" value={pet.energy} hue={150} />
-              <StatBar label="Fullness" value={pet.fullness} hue={88} />
+              <StatBar label="Health" value={pet.health} hue={150} />
             </div>
 
             {isNeglected && (
@@ -701,13 +656,12 @@ export function PetApp() {
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3,minmax(0,1fr))",
+                gridTemplateColumns: "repeat(2,minmax(0,1fr))",
                 gap: 12,
                 marginTop: 18,
               }}
             >
               <StatTile value={decks.length} label="Decks" />
-              <StatTile value={pet.accessories.length} label="Accessories" />
               <StatTile value={`${weeklyAccuracy}%`} label="7-day accuracy" />
             </div>
           </div>
@@ -829,7 +783,7 @@ export function PetApp() {
                             marginTop: 2,
                           }}
                         >
-                          {deck.source} · {deck.total} cards
+                          {deck.totalCards} cards
                         </div>
                       </div>
                       <div
@@ -865,7 +819,7 @@ export function PetApp() {
                       />
                     </div>
                     <button
-                      onClick={() => startReview(deck.id)}
+                      onClick={() => void startReview(deck.id)}
                       disabled={studyDisabled}
                       style={{
                         marginTop: 16,
@@ -953,7 +907,6 @@ export function PetApp() {
                   species={pet.species}
                   color={speciesInfo.color}
                   size={78}
-                  hasBow={pet.accessories.includes("bow")}
                   mood={mood}
                 />
               </div>
@@ -997,7 +950,11 @@ export function PetApp() {
                   lineHeight: 1.4,
                 }}
               >
-                {currentCard ? (flipped ? currentCard.a : currentCard.q) : ""}
+                {currentCard
+                  ? flipped
+                    ? currentCard.back
+                    : currentCard.front
+                  : ""}
               </div>
               {!flipped && (
                 <div
@@ -1023,9 +980,10 @@ export function PetApp() {
                 }}
               >
                 <button
+                  disabled={isSubmittingReview}
                   onClick={(e) => {
                     e.stopPropagation();
-                    grade("again");
+                    void grade("again");
                   }}
                   style={{
                     padding: 16,
@@ -1035,15 +993,17 @@ export function PetApp() {
                     color: "oklch(34% 0.1 20)",
                     fontWeight: 800,
                     fontSize: 14,
-                    cursor: "pointer",
+                    cursor: isSubmittingReview ? "default" : "pointer",
+                    opacity: isSubmittingReview ? 0.6 : 1,
                   }}
                 >
                   Again
                 </button>
                 <button
+                  disabled={isSubmittingReview}
                   onClick={(e) => {
                     e.stopPropagation();
-                    grade("hard");
+                    void grade("hard");
                   }}
                   style={{
                     padding: 16,
@@ -1053,15 +1013,17 @@ export function PetApp() {
                     color: "oklch(36% 0.09 55)",
                     fontWeight: 800,
                     fontSize: 14,
-                    cursor: "pointer",
+                    cursor: isSubmittingReview ? "default" : "pointer",
+                    opacity: isSubmittingReview ? 0.6 : 1,
                   }}
                 >
                   Hard
                 </button>
                 <button
+                  disabled={isSubmittingReview}
                   onClick={(e) => {
                     e.stopPropagation();
-                    grade("good");
+                    void grade("good");
                   }}
                   style={{
                     padding: 16,
@@ -1071,15 +1033,17 @@ export function PetApp() {
                     color: "oklch(34% 0.08 150)",
                     fontWeight: 800,
                     fontSize: 14,
-                    cursor: "pointer",
+                    cursor: isSubmittingReview ? "default" : "pointer",
+                    opacity: isSubmittingReview ? 0.6 : 1,
                   }}
                 >
                   Good
                 </button>
                 <button
+                  disabled={isSubmittingReview}
                   onClick={(e) => {
                     e.stopPropagation();
-                    grade("easy");
+                    void grade("easy");
                   }}
                   style={{
                     padding: 16,
@@ -1089,7 +1053,8 @@ export function PetApp() {
                     color: "oklch(38% 0.09 85)",
                     fontWeight: 800,
                     fontSize: 14,
-                    cursor: "pointer",
+                    cursor: isSubmittingReview ? "default" : "pointer",
+                    opacity: isSubmittingReview ? 0.6 : 1,
                   }}
                 >
                   Easy
@@ -1175,7 +1140,6 @@ export function PetApp() {
                   species={pet.species}
                   color={speciesInfo.color}
                   size={130}
-                  hasBow={pet.accessories.includes("bow")}
                   mood="happy"
                 />
               </div>
@@ -1186,40 +1150,12 @@ export function PetApp() {
 
             <div style={{ display: "flex", gap: 12, marginTop: 22 }}>
               <ResultTile value={`${results.accuracy}%`} label="Accuracy" />
-              <ResultTile value={`+${results.xpGained}`} label="XP gained" />
+              <ResultTile
+                value={`${results.healthDelta >= 0 ? "+" : ""}${results.healthDelta}`}
+                label="Health Δ"
+              />
               <ResultTile value={pet.streak} label="Day streak" />
             </div>
-
-            {results.leveledUp && (
-              <div
-                style={{
-                  marginTop: 18,
-                  background: "oklch(89% 0.08 40)",
-                  color: TERRACOTTA_DEEP,
-                  fontWeight: 800,
-                  fontSize: 14,
-                  padding: 14,
-                  borderRadius: 16,
-                }}
-              >
-                ✨ {pet.name} evolved into a {stage.label}!
-              </div>
-            )}
-            {results.newAccessory && (
-              <div
-                style={{
-                  marginTop: 18,
-                  background: "oklch(90% 0.08 45)",
-                  color: "oklch(32% 0.08 45)",
-                  fontWeight: 800,
-                  fontSize: 14,
-                  padding: 14,
-                  borderRadius: 16,
-                }}
-              >
-                🎁 New accessory unlocked: {results.newAccessory}!
-              </div>
-            )}
 
             <button
               onClick={() => setScreen("home")}
@@ -1343,110 +1279,6 @@ export function PetApp() {
                         borderRadius: "6px 6px 3px 3px",
                       }}
                     />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 20,
-                marginTop: 20,
-              }}
-            >
-              <div
-                style={{
-                  background: CARD_BG,
-                  borderRadius: 22,
-                  padding: 22,
-                  border: `2px solid ${CARD_LINE}`,
-                  boxShadow: "0 4px 14px oklch(35% 0.05 60 / 0.06)",
-                }}
-              >
-                <div style={{ fontWeight: 800, fontSize: 15 }}>
-                  Growth timeline
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginTop: 16,
-                  }}
-                >
-                  {timeline.map((t) => (
-                    <div
-                      key={t.key}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 6,
-                        flex: 1,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: "50%",
-                          background: t.bg,
-                          color: t.color,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 800,
-                          fontSize: 13,
-                        }}
-                      >
-                        {t.initial}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "oklch(48% 0.04 255 / 0.55)",
-                        }}
-                      >
-                        {t.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div
-                style={{
-                  background: CARD_BG,
-                  borderRadius: 22,
-                  padding: 22,
-                  border: `2px solid ${CARD_LINE}`,
-                  boxShadow: "0 4px 14px oklch(35% 0.05 60 / 0.06)",
-                }}
-              >
-                <div style={{ fontWeight: 800, fontSize: 15 }}>Accessories</div>
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 10,
-                    marginTop: 14,
-                    flexWrap: "wrap",
-                  }}
-                >
-                  {pet.accessories.map((a) => (
-                    <div
-                      key={a}
-                      style={{
-                        background: "oklch(94% 0.03 80)",
-                        borderRadius: 14,
-                        padding: "10px 14px",
-                        fontWeight: 700,
-                        fontSize: 13,
-                      }}
-                    >
-                      {accessoryLabels[a] ?? a}
-                    </div>
                   ))}
                 </div>
               </div>
@@ -1716,47 +1548,6 @@ function ResultTile({
   );
 }
 
-function Egg() {
-  return (
-    <div
-      style={{
-        width: 108,
-        height: 140,
-        borderRadius: "50% 50% 50% 50% / 60% 60% 40% 40%",
-        background: CARD_BG,
-        border: `4px solid ${INK}`,
-        position: "relative",
-        animation: "crackShake 3s ease-in-out infinite",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: "40%",
-          left: "20%",
-          width: "60%",
-          height: 3,
-          background: INK,
-          opacity: 0.55,
-          transform: "rotate(-8deg)",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: "55%",
-          left: "35%",
-          width: "40%",
-          height: 3,
-          background: INK,
-          opacity: 0.55,
-          transform: "rotate(12deg)",
-        }}
-      />
-    </div>
-  );
-}
-
 function Paw({ style }: { style: React.CSSProperties }) {
   return (
     <div
@@ -1774,13 +1565,11 @@ function PetFace({
   species,
   color,
   size,
-  hasBow,
   mood,
 }: {
   species: Species;
   color: string;
   size: number;
-  hasBow: boolean;
   mood: "happy" | "neutral" | "sad";
 }) {
   return (
@@ -1964,52 +1753,6 @@ function PetFace({
           clipPath: "inset(0 0 40% 0)",
         }}
       />
-
-      {hasBow && (
-        <div
-          style={{
-            position: "absolute",
-            top: "-8%",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "22%",
-            height: "16%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2,
-          }}
-        >
-          <div
-            style={{
-              width: 0,
-              height: 0,
-              borderTop: "9px solid transparent",
-              borderBottom: "9px solid transparent",
-              borderRight: `14px solid ${BLUSH}`,
-            }}
-          />
-          <div
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: BLUSH,
-              border: `2px solid ${INK}`,
-              margin: "0 -2px",
-            }}
-          />
-          <div
-            style={{
-              width: 0,
-              height: 0,
-              borderTop: "9px solid transparent",
-              borderBottom: "9px solid transparent",
-              borderLeft: `14px solid ${BLUSH}`,
-            }}
-          />
-        </div>
-      )}
 
       {/* blush cheeks */}
       <div

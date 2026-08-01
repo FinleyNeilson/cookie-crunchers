@@ -3,6 +3,7 @@ import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 
 import { db } from "~/server/db";
+import { seedDemoDataForUser } from "~/server/demo-seed";
 
 declare module "next-auth" {
   interface Session extends DefaultSession {
@@ -23,5 +24,10 @@ export const authConfig = {
         id: user.id,
       },
     }),
+  },
+  events: {
+    createUser: async ({ user }) => {
+      if (user.id) await seedDemoDataForUser(db, user.id);
+    },
   },
 } satisfies NextAuthConfig;

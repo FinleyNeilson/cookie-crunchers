@@ -4,12 +4,29 @@ import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
 export const deckRouter = createTRPCRouter({
-  list: protectedProcedure.query(({ ctx }) =>
-    ctx.db.deck.findMany({
+  list: protectedProcedure.query(async ({ ctx }) => {
+    const decks = await ctx.db.deck.findMany({
       where: { userId: ctx.session.user.id },
       orderBy: { createdAt: "desc" },
-    }),
-  ),
+      include: { _count: { select: { cards: true } } },
+    });
+
+    const dueCounts = await ctx.db.card.groupBy({
+      by: ["deckId"],
+      where: {
+        deck: { userId: ctx.session.user.id },
+        dueAt: { lte: new Date() },
+      },
+      _count: { _all: true },
+    });
+    const dueByDeck = new Map(dueCounts.map((d) => [d.deckId, d._count._all]));
+
+    return decks.map(({ _count, ...deck }) => ({
+      ...deck,
+      totalCards: _count.cards,
+      dueCards: dueByDeck.get(deck.id) ?? 0,
+    }));
+  }),
 
   create: protectedProcedure
     .input(

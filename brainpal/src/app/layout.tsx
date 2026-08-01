@@ -1,6 +1,7 @@
 import "~/styles/globals.css";
 
 import { type Metadata } from "next";
+import { SessionProvider } from "next-auth/react";
 
 import { TRPCReactProvider } from "~/trpc/react";
 
@@ -23,7 +24,9 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </TRPCReactProvider>
       </body>
     </html>
   );

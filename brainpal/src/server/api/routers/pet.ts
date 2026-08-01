@@ -1,18 +1,18 @@
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
-import { getPetHealth } from "~/server/pet/health";
+import { getPetStats } from "~/server/pet/health";
 
 export const petRouter = createTRPCRouter({
   get: protectedProcedure.query(async ({ ctx }) => {
-    // Lazily create the pet on first fetch rather than requiring a signup
-    // hook — keeps "one pet per user" true without extra plumbing.
+    // Lazily create the pet in case the createUser seed event was skipped
+    // (e.g. a user that existed before that hook was added).
     const pet = await ctx.db.pet.upsert({
       where: { userId: ctx.session.user.id },
       create: { userId: ctx.session.user.id },
       update: {},
     });
 
-    const health = await getPetHealth(ctx.db, ctx.session.user.id);
+    const stats = await getPetStats(ctx.db, ctx.session.user.id);
 
-    return { ...pet, health };
+    return { ...pet, ...stats };
   }),
 });

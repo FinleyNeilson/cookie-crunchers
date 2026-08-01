@@ -61,10 +61,15 @@ function currentStreakDays(reviewDates: Date[]): number {
   return streak;
 }
 
-export async function getPetHealth(
+export interface PetStats {
+  health: number;
+  streak: number;
+}
+
+export async function getPetStats(
   db: PrismaClient,
   userId: string,
-): Promise<number> {
+): Promise<PetStats> {
   const now = new Date();
 
   const overdueCards = await db.card.findMany({
@@ -95,12 +100,15 @@ export async function getPetHealth(
         accuracyWindow.length
       : null;
 
-  return computeHealth({
-    overdueCount,
-    overdueDaysSum,
-    recentAccuracy,
-    currentStreakDays: currentStreakDays(
-      recentReviews.map((r) => r.reviewedAt),
-    ),
-  });
+  const streak = currentStreakDays(recentReviews.map((r) => r.reviewedAt));
+
+  return {
+    health: computeHealth({
+      overdueCount,
+      overdueDaysSum,
+      recentAccuracy,
+      currentStreakDays: streak,
+    }),
+    streak,
+  };
 }
