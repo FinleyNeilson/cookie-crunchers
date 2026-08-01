@@ -1,0 +1,3 @@
+ALTER TABLE "Card" ADD COLUMN "type" TEXT NOT NULL DEFAULT 'flashcard';
+ALTER TABLE "Card" ADD COLUMN "optionsJson" TEXT;
+ALTER TABLE "Card" ADD COLUMN "correctIndex" INTEGER;

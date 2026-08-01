@@ -76,6 +76,11 @@ model Card {
   deckId String
   front  String
   back   String
+  // "flashcard" | "quiz". SQLite has no native enum, so the API validates it.
+  type         String  @default("flashcard")
+  // JSON string containing 2-4 answer choices for quiz cards.
+  optionsJson  String?
+  correctIndex Int?
 
   // SM-2 scheduling state, updated after each review.
   easeFactor   Float    @default(2.5)

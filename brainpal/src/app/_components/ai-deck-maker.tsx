@@ -19,6 +19,9 @@ export function AIDeckMaker({
 }) {
   const [files, setFiles] = useState<File[]>([]);
   const [cardCount, setCardCount] = useState(20);
+  const [contentType, setContentType] = useState<
+    "flashcards" | "quizzes" | "mixed"
+  >("mixed");
   const [instructions, setInstructions] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -47,6 +50,7 @@ export function AIDeckMaker({
       const form = new FormData();
       files.forEach((file) => form.append("files", file));
       form.append("cardCount", String(cardCount));
+      form.append("contentType", contentType);
       form.append("instructions", instructions);
       const response = await fetch("/api/ai/decks", {
         method: "POST",
@@ -112,7 +116,7 @@ export function AIDeckMaker({
           </button>
         </div>
 
-        <label
+        <div
           className="ai-dropzone"
           onDragOver={(event) => event.preventDefault()}
           onDrop={(event) => {
@@ -121,6 +125,7 @@ export function AIDeckMaker({
           }}
         >
           <input
+            id="ai-source-files"
             type="file"
             multiple
             accept=".pdf,.ppt,.pptx,.doc,.docx,.txt,.md"
@@ -131,7 +136,7 @@ export function AIDeckMaker({
             }}
             className="sr-file-input"
           />
-          <span>
+          <label htmlFor="ai-source-files" className="ai-file-picker-label">
             <span style={{ display: "block", fontSize: 30 }}>📚</span>
             <strong style={{ display: "block", marginTop: 6 }}>
               Choose files or drop them here
@@ -140,8 +145,8 @@ export function AIDeckMaker({
               PDF, PowerPoint, Word, text or Markdown · up to 10 files / 50 MB
               total
             </span>
-          </span>
-        </label>
+          </label>
+        </div>
 
         {files.length > 0 && (
           <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
@@ -169,6 +174,23 @@ export function AIDeckMaker({
 
         <div className="ai-options">
           <label style={{ fontSize: 13, fontWeight: 800 }}>
+            Create
+            <select
+              value={contentType}
+              disabled={isGenerating}
+              onChange={(event) =>
+                setContentType(
+                  event.target.value as "flashcards" | "quizzes" | "mixed",
+                )
+              }
+              style={fieldStyle}
+            >
+              <option value="mixed">A mixed deck</option>
+              <option value="flashcards">Flashcards only</option>
+              <option value="quizzes">Quizzes only</option>
+            </select>
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 800 }}>
             Number of cards
             <input
               type="number"
@@ -180,7 +202,10 @@ export function AIDeckMaker({
               style={fieldStyle}
             />
           </label>
-          <label style={{ fontSize: 13, fontWeight: 800 }}>
+          <label
+            className="ai-focus-field"
+            style={{ fontSize: 13, fontWeight: 800 }}
+          >
             Anything to focus on?{" "}
             <span style={{ fontWeight: 500 }}>(optional)</span>
             <input

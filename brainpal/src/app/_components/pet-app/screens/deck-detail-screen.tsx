@@ -33,9 +33,15 @@ export function DeckDetailScreen({
   const [nameDraft, setNameDraft] = useState(deck.name);
   const [newFront, setNewFront] = useState("");
   const [newBack, setNewBack] = useState("");
+  const [newType, setNewType] = useState<"flashcard" | "quiz">("flashcard");
+  const [newOptions, setNewOptions] = useState(["", "", "", ""]);
+  const [newCorrectIndex, setNewCorrectIndex] = useState(0);
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [editFront, setEditFront] = useState("");
   const [editBack, setEditBack] = useState("");
+  const [editType, setEditType] = useState<"flashcard" | "quiz">("flashcard");
+  const [editOptions, setEditOptions] = useState(["", "", "", ""]);
+  const [editCorrectIndex, setEditCorrectIndex] = useState(0);
 
   async function saveRename() {
     const trimmed = nameDraft.trim();
@@ -57,10 +63,32 @@ export function DeckDetailScreen({
   async function handleAddCard() {
     const front = newFront.trim();
     const back = newBack.trim();
-    if (!front || !back) return;
-    await createCard.mutateAsync({ deckId: deck.id, front, back });
+    const lastOptionIndex = newOptions.reduce(
+      (last, option, index) => (option.trim() ? index : last),
+      -1,
+    );
+    const options = newOptions
+      .slice(0, lastOptionIndex + 1)
+      .map((option) => option.trim());
+    if (!front || (newType === "flashcard" && !back)) return;
+    if (
+      newType === "quiz" &&
+      (options.length < 2 ||
+        options.some((option) => !option) ||
+        newCorrectIndex >= options.length)
+    )
+      return;
+    await createCard.mutateAsync({
+      deckId: deck.id,
+      front,
+      back: newType === "quiz" ? options[newCorrectIndex]! : back,
+      type: newType,
+      ...(newType === "quiz" ? { options, correctIndex: newCorrectIndex } : {}),
+    });
     setNewFront("");
     setNewBack("");
+    setNewOptions(["", "", "", ""]);
+    setNewCorrectIndex(0);
     await Promise.all([
       utils.card.listByDeck.invalidate({ deckId: deck.id }),
       utils.deck.list.invalidate(),
@@ -71,14 +99,42 @@ export function DeckDetailScreen({
     setEditingCardId(card.id);
     setEditFront(card.front);
     setEditBack(card.back);
+    setEditType(card.type === "quiz" ? "quiz" : "flashcard");
+    const options = card.optionsJson
+      ? (JSON.parse(card.optionsJson) as string[])
+      : [];
+    setEditOptions([...options, "", "", ""].slice(0, 4));
+    setEditCorrectIndex(card.correctIndex ?? 0);
   }
 
   async function saveCardEdit() {
     if (!editingCardId) return;
     const front = editFront.trim();
     const back = editBack.trim();
-    if (!front || !back) return;
-    await updateCard.mutateAsync({ id: editingCardId, front, back });
+    const lastOptionIndex = editOptions.reduce(
+      (last, option, index) => (option.trim() ? index : last),
+      -1,
+    );
+    const options = editOptions
+      .slice(0, lastOptionIndex + 1)
+      .map((option) => option.trim());
+    if (!front || (editType === "flashcard" && !back)) return;
+    if (
+      editType === "quiz" &&
+      (options.length < 2 ||
+        options.some((option) => !option) ||
+        editCorrectIndex >= options.length)
+    )
+      return;
+    await updateCard.mutateAsync({
+      id: editingCardId,
+      front,
+      back: editType === "quiz" ? options[editCorrectIndex]! : back,
+      type: editType,
+      ...(editType === "quiz"
+        ? { options, correctIndex: editCorrectIndex }
+        : {}),
+    });
     setEditingCardId(null);
     await utils.card.listByDeck.invalidate({ deckId: deck.id });
   }
@@ -211,18 +267,70 @@ export function DeckDetailScreen({
           >
             {editingCardId === card.id ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ display: "flex", gap: 7 }}>
+                  {(["flashcard", "quiz"] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setEditType(type)}
+                      style={{
+                        flex: 1,
+                        padding: 8,
+                        border: `2px solid ${editType === type ? TERRACOTTA : CARD_LINE}`,
+                        borderRadius: 10,
+                        background:
+                          editType === type
+                            ? "oklch(94% 0.05 40)"
+                            : "transparent",
+                        color: INK,
+                        fontWeight: 800,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {type === "quiz" ? "Quiz" : "Flashcard"}
+                    </button>
+                  ))}
+                </div>
                 <input
                   value={editFront}
                   onChange={(e) => setEditFront(e.target.value)}
                   placeholder="Front"
                   style={inputStyle}
                 />
-                <input
-                  value={editBack}
-                  onChange={(e) => setEditBack(e.target.value)}
-                  placeholder="Back"
-                  style={inputStyle}
-                />
+                {editType === "flashcard" ? (
+                  <input
+                    value={editBack}
+                    onChange={(e) => setEditBack(e.target.value)}
+                    placeholder="Back"
+                    style={inputStyle}
+                  />
+                ) : (
+                  editOptions.map((option, index) => (
+                    <label
+                      key={index}
+                      style={{ display: "flex", alignItems: "center", gap: 7 }}
+                    >
+                      <input
+                        type="radio"
+                        name={`edit-correct-${card.id}`}
+                        checked={editCorrectIndex === index}
+                        onChange={() => setEditCorrectIndex(index)}
+                      />
+                      <input
+                        value={option}
+                        onChange={(event) =>
+                          setEditOptions((current) =>
+                            current.map((value, i) =>
+                              i === index ? event.target.value : value,
+                            ),
+                          )
+                        }
+                        placeholder={`Answer ${index + 1}${index > 1 ? " (optional)" : ""}`}
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                    </label>
+                  ))
+                )}
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     onClick={() => void saveCardEdit()}
@@ -265,6 +373,24 @@ export function DeckDetailScreen({
                 }}
               >
                 <div>
+                  <div
+                    style={{
+                      display: "inline-block",
+                      marginBottom: 7,
+                      padding: "3px 8px",
+                      borderRadius: 999,
+                      background:
+                        card.type === "quiz"
+                          ? "oklch(90% 0.07 260)"
+                          : "oklch(91% 0.03 80)",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    {card.type === "quiz" ? "Multiple choice" : "Flashcard"}
+                  </div>
                   <div style={{ fontWeight: 700 }}>{card.front}</div>
                   <div
                     style={{
@@ -275,6 +401,28 @@ export function DeckDetailScreen({
                   >
                     {card.back}
                   </div>
+                  {card.type === "quiz" && card.optionsJson && (
+                    <div style={{ display: "grid", gap: 4, marginTop: 8 }}>
+                      {(JSON.parse(card.optionsJson) as string[]).map(
+                        (option, index) => (
+                          <div
+                            key={option}
+                            style={{
+                              fontSize: 12,
+                              fontWeight:
+                                index === card.correctIndex ? 800 : 600,
+                              color:
+                                index === card.correctIndex
+                                  ? "oklch(42% 0.1 150)"
+                                  : "oklch(48% 0.04 255 / 0.65)",
+                            }}
+                          >
+                            {index === card.correctIndex ? "✓" : "○"} {option}
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                   <button
@@ -323,25 +471,90 @@ export function DeckDetailScreen({
         }}
       >
         <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>
-          Add a card
+          Add a study item
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+          >
+            {(["flashcard", "quiz"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setNewType(type)}
+                style={{
+                  padding: 11,
+                  border: `2px solid ${newType === type ? TERRACOTTA : CARD_LINE}`,
+                  borderRadius: 12,
+                  background:
+                    newType === type ? "oklch(94% 0.05 40)" : "transparent",
+                  color: INK,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                }}
+              >
+                {type === "flashcard"
+                  ? "↻ Flashcard"
+                  : "☷ Multiple-choice quiz"}
+              </button>
+            ))}
+          </div>
           <input
             value={newFront}
             onChange={(e) => setNewFront(e.target.value)}
-            placeholder="Front (question)"
+            placeholder={
+              newType === "quiz" ? "Quiz question" : "Front (question)"
+            }
             style={inputStyle}
           />
-          <input
-            value={newBack}
-            onChange={(e) => setNewBack(e.target.value)}
-            placeholder="Back (answer)"
-            style={inputStyle}
-          />
+          {newType === "flashcard" ? (
+            <input
+              value={newBack}
+              onChange={(e) => setNewBack(e.target.value)}
+              placeholder="Back (answer)"
+              style={inputStyle}
+            />
+          ) : (
+            <div style={{ display: "grid", gap: 7 }}>
+              <div style={{ fontSize: 12, fontWeight: 700 }}>
+                Select the correct answer. Leave unused choices blank.
+              </div>
+              {newOptions.map((option, index) => (
+                <label
+                  key={index}
+                  style={{ display: "flex", alignItems: "center", gap: 8 }}
+                >
+                  <input
+                    type="radio"
+                    name="new-correct-answer"
+                    checked={newCorrectIndex === index}
+                    onChange={() => setNewCorrectIndex(index)}
+                  />
+                  <input
+                    value={option}
+                    onChange={(event) =>
+                      setNewOptions((current) =>
+                        current.map((value, i) =>
+                          i === index ? event.target.value : value,
+                        ),
+                      )
+                    }
+                    placeholder={`Answer ${index + 1}${index > 1 ? " (optional)" : ""}`}
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                </label>
+              ))}
+            </div>
+          )}
           <button
             onClick={() => void handleAddCard()}
             disabled={
-              !newFront.trim() || !newBack.trim() || createCard.isPending
+              !newFront.trim() ||
+              (newType === "flashcard" && !newBack.trim()) ||
+              (newType === "quiz" &&
+                (newOptions.filter((option) => option.trim()).length < 2 ||
+                  !newOptions[newCorrectIndex]?.trim())) ||
+              createCard.isPending
             }
             style={{
               padding: 12,
@@ -353,7 +566,7 @@ export function DeckDetailScreen({
               cursor: "pointer",
             }}
           >
-            + Add card
+            + Add {newType === "quiz" ? "quiz" : "flashcard"}
           </button>
         </div>
       </div>
