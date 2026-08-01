@@ -43,3 +43,13 @@ body {
     transform: rotate(3deg);
   }
 }
+
+@keyframes cloudDrift {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(14px);
+  }
+}
