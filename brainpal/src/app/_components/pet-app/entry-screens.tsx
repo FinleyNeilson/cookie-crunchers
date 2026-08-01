@@ -51,12 +51,16 @@ export function SignInScreen() {
     >
       <div
         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
           fontFamily: "'Baloo 2', sans-serif",
           fontWeight: 800,
           fontSize: 28,
         }}
       >
-        🥚 Hatchly
+        <img src="/pets/egg.svg" alt="" style={{ width: 34, height: "auto" }} />
+        Spaced Eggs
       </div>
       <div style={{ fontSize: 15, color: "oklch(48% 0.04 255 / 0.7)" }}>
         Sign in to start studying and keep your pet happy.
@@ -121,12 +125,7 @@ export function NamePetScreen({
           animation: "petBounce 2.6s ease-in-out infinite",
         }}
       >
-        <PetFace
-          species={species}
-          color={speciesInfo.color}
-          size={120}
-          mood="happy"
-        />
+        <PetFace species={species} size={120} />
       </div>
       <div
         style={{
@@ -200,8 +199,8 @@ export function SpeciesPickerScreen({
   onChoose: (species: Species) => void | Promise<void>;
 }) {
   const [isChoosing, setIsChoosing] = useState(false);
-  // Offer a random 3 of the 4 species each time this screen mounts, rather
-  // than always all 4 or a fixed trio.
+  // Offer a random 3 of all species each time this screen mounts, rather
+  // than always all of them or a fixed trio.
   const [offeredSpecies] = useState<Species[]>(() => {
     const all = Object.keys(SPECIES) as Species[];
     const shuffled = [...all].sort(() => Math.random() - 0.5);
@@ -241,7 +240,7 @@ export function SpeciesPickerScreen({
           maxWidth: 420,
         }}
       >
-        Placeholder art for now — hand-drawn versions are coming later.
+        Placeholder art for now, hand-drawn versions are coming later.
       </div>
       <div
         style={{
@@ -273,12 +272,7 @@ export function SpeciesPickerScreen({
             }}
           >
             <div style={{ width: 90, height: 90 }}>
-              <PetFace
-                species={key}
-                color={SPECIES[key].color}
-                size={90}
-                mood="happy"
-              />
+              <PetFace species={key} size={90} />
             </div>
             <div style={{ fontWeight: 800, fontSize: 14 }}>
               {SPECIES[key].label}

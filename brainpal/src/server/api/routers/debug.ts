@@ -7,6 +7,7 @@ import { seedDemoDataForUser } from "~/server/demo-seed";
 import {
   getActivePet,
   getGrowthPoints,
+  graduatePet,
   stageForMastery,
   STAGE_THRESHOLDS,
   MATURE_INTERVAL_DAYS,
@@ -135,7 +136,7 @@ export const debugRouter = createTRPCRouter({
     const next =
       ascending[ascending.findIndex((t) => t.stage === currentStage) + 1];
     if (!next) {
-      return { stage: currentStage, reachedNextStage: false };
+      return { stage: currentStage, reachedNextStage: false, graduated: null };
     }
 
     // A hair over the threshold, not exactly on it, so rounding never
@@ -177,7 +178,18 @@ export const debugRouter = createTRPCRouter({
     }
 
     const newStage = stageForMastery(growthPoints + added);
-    return { stage: newStage, reachedNextStage: newStage !== currentStage };
+    const reachedNextStage = newStage !== currentStage;
+
+    // Crossing into "adult" IS graduation (see review.submit) — without
+    // this, advanceStage left the pet stuck showing "adult" forever
+    // instead of actually retiring it like the real threshold-crossing
+    // path does.
+    const graduated =
+      reachedNextStage && newStage === "adult"
+        ? await graduatePet(ctx.db, ctx.session.user.id, pet)
+        : null;
+
+    return { stage: newStage, reachedNextStage, graduated };
   }),
 
   // Retires the current pet as graduated and spawns a fresh one, bypassing
@@ -187,11 +199,8 @@ export const debugRouter = createTRPCRouter({
     assertDevOnly();
 
     const pet = await getActivePet(ctx.db, ctx.session.user.id);
-    await ctx.db.pet.update({
-      where: { id: pet.id },
-      data: { retiredAt: new Date(), retirementReason: "graduated" },
-    });
-    return ctx.db.pet.create({ data: { userId: ctx.session.user.id } });
+    const graduated = await graduatePet(ctx.db, ctx.session.user.id, pet);
+    return { graduated };
   }),
 
   // Retires the current pet as died and spawns a fresh one, bypassing the

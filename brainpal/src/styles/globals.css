@@ -15,8 +15,8 @@ body {
   flex: 0 0 auto;
   box-sizing: border-box;
   border-style: solid;
-  border-color: oklch(66% 0.13 40 / 0.24);
-  border-top-color: oklch(66% 0.13 40);
+  border-color: oklch(70% 0.17 42 / 0.24);
+  border-top-color: oklch(70% 0.17 42);
   border-radius: 999px;
   animation: loadingSpin 0.75s linear infinite;
 }
@@ -71,7 +71,7 @@ body {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background: oklch(25% 0.04 255 / 0.46);
+  background: oklch(25% 0.06 260 / 0.46);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -83,9 +83,9 @@ body {
   box-sizing: border-box;
   border-radius: 26px;
   padding: 26px;
-  background: oklch(98% 0.02 80);
-  border: 3px solid oklch(32% 0.08 255);
-  box-shadow: 0 18px 60px oklch(20% 0.04 255 / 0.28);
+  background: oklch(98% 0.03 90);
+  border: 3px solid oklch(30% 0.11 260);
+  box-shadow: 0 18px 60px oklch(20% 0.06 260 / 0.28);
 }
 .ai-modal-title {
   font-family: "Baloo 2", sans-serif;
@@ -95,7 +95,7 @@ body {
 .ai-modal-subtitle {
   margin-top: 3px;
   font-size: 14px;
-  color: oklch(45% 0.04 255);
+  color: oklch(45% 0.05 260);
 }
 .ai-close,
 .ai-remove-file {
@@ -115,8 +115,8 @@ body {
   padding: 20px;
   text-align: center;
   border-radius: 20px;
-  border: 2px dashed oklch(66% 0.13 40);
-  background: oklch(96% 0.04 55);
+  border: 2px dashed oklch(70% 0.17 42);
+  background: oklch(96% 0.045 48);
   cursor: pointer;
 }
 .sr-file-input {
@@ -132,7 +132,7 @@ body {
   gap: 10px;
   padding: 9px 12px;
   border-radius: 12px;
-  background: oklch(93% 0.025 80);
+  background: oklch(93% 0.03 90);
   font-size: 13px;
 }
 .ai-file-name {
@@ -148,7 +148,7 @@ body {
 }
 .ai-error {
   margin-top: 14px;
-  color: oklch(48% 0.16 25);
+  color: oklch(48% 0.18 350);
   font-size: 13px;
   font-weight: 700;
 }
@@ -158,15 +158,15 @@ body {
   padding: 13px 18px;
   border: 0;
   border-radius: 15px;
-  background: oklch(66% 0.13 40);
+  background: oklch(70% 0.17 42);
   color: white;
   font-weight: 800;
   font-size: 15px;
   cursor: pointer;
 }
 .ai-generate:disabled {
-  background: oklch(82% 0.02 80);
-  color: oklch(50% 0.02 80);
+  background: oklch(82% 0.025 90);
+  color: oklch(50% 0.025 90);
   cursor: default;
 }
 @media (max-width: 560px) {

@@ -1,4 +1,3 @@
-import { SPECIES } from "~/app/_components/pet-app/constants";
 import { PetFace } from "~/app/_components/pet-app/pet-visuals";
 import { type RetiredPet, type Species } from "~/app/_components/pet-app/types";
 
@@ -25,7 +24,7 @@ export function RetiredPetPortrait({
     return (
       <div style={{ width: size, height: size, opacity: 0.7 }}>
         <img
-          src="/pets/ghost.png"
+          src="/pets/ghost.svg"
           alt="Ghost"
           style={{ width: "100%", height: "100%", objectFit: "contain" }}
         />
@@ -36,16 +35,9 @@ export function RetiredPetPortrait({
   // Graduated pets always have a species by the time they retire.
   if (!pet.species) return null;
 
-  const speciesInfo = SPECIES[pet.species as Species];
-
   return (
     <div style={{ position: "relative", width: size, height: size }}>
-      <PetFace
-        species={pet.species as Species}
-        color={speciesInfo.color}
-        size={size}
-        mood="happy"
-      />
+      <PetFace species={pet.species as Species} size={size} />
     </div>
   );
 }

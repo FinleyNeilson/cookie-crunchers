@@ -74,7 +74,7 @@ export function AIDeckMaker({
     marginTop: 6,
     padding: 10,
     borderRadius: 11,
-    border: "2px solid oklch(87% 0.04 75)",
+    border: "2px solid oklch(85% 0.05 250)",
     font: "inherit",
   };
 
@@ -94,11 +94,11 @@ export function AIDeckMaker({
         >
           <div>
             <div id="ai-deck-title" className="ai-modal-title">
-              ✦ Make a deck with AI
+              Make a deck with AI
             </div>
             <div className="ai-modal-subtitle">
-              Add lecture slides or notes and Hatchly will turn the key ideas
-              into cards.
+              Add lecture slides or notes and Spaced Eggs will turn the key
+              ideas into cards.
             </div>
           </div>
           <button
@@ -132,7 +132,6 @@ export function AIDeckMaker({
             className="sr-file-input"
           />
           <span>
-            <span style={{ display: "block", fontSize: 30 }}>📚</span>
             <strong style={{ display: "block", marginTop: 6 }}>
               Choose files or drop them here
             </strong>
@@ -211,7 +210,7 @@ export function AIDeckMaker({
               Reading your files and making cards…
             </span>
           ) : (
-            "✦ Generate deck"
+            "Generate deck"
           )}
         </button>
         {isGenerating && (

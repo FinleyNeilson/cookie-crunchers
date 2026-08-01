@@ -6,9 +6,8 @@ import { type PrismaClient } from "@prisma/client";
 // tuned once the pet UI exists to see how it feels.
 
 const MAX_OVERDUE_PENALTY = 60;
-const MAX_STREAK_BONUS = 15;
 const ACCURACY_WINDOW = 20;
-const STREAK_LOOKBACK_DAYS = 90;
+const ACCURACY_LOOKBACK_DAYS = 90;
 
 // A freshly-hatched pet is guaranteed 100 health for this long, no matter
 // how bad the account's actual backlog is — otherwise a brand-new pet
@@ -22,12 +21,10 @@ export interface PetHealthInputs {
   overdueCount: number;
   overdueDaysSum: number;
   recentAccuracy: number | null;
-  currentStreakDays: number;
 }
 
 export function computeHealth(inputs: PetHealthInputs): number {
-  const { overdueCount, overdueDaysSum, recentAccuracy, currentStreakDays } =
-    inputs;
+  const { overdueCount, overdueDaysSum, recentAccuracy } = inputs;
 
   let health = 100;
 
@@ -40,38 +37,11 @@ export function computeHealth(inputs: PetHealthInputs): number {
     health -= (0.7 - recentAccuracy) * 100;
   }
 
-  health += Math.min(MAX_STREAK_BONUS, currentStreakDays * 1.5);
-
   return Math.round(Math.max(0, Math.min(100, health)));
-}
-
-function startOfDay(date: Date): number {
-  const day = new Date(date);
-  day.setHours(0, 0, 0, 0);
-  return day.getTime();
-}
-
-function currentStreakDays(reviewDates: Date[]): number {
-  const days = new Set(reviewDates.map(startOfDay));
-
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
-  if (!days.has(cursor.getTime())) {
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  let streak = 0;
-  while (days.has(cursor.getTime())) {
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return streak;
 }
 
 export interface PetStats {
   health: number;
-  streak: number;
 }
 
 export async function getPetStats(
@@ -82,7 +52,7 @@ export async function getPetStats(
   const now = new Date();
 
   const lookbackStart = new Date(now);
-  lookbackStart.setDate(lookbackStart.getDate() - STREAK_LOOKBACK_DAYS);
+  lookbackStart.setDate(lookbackStart.getDate() - ACCURACY_LOOKBACK_DAYS);
 
   const recentReviews = await db.reviewLog.findMany({
     where: { card: { deck: { userId } }, reviewedAt: { gte: lookbackStart } },
@@ -90,13 +60,9 @@ export async function getPetStats(
     orderBy: { reviewedAt: "desc" },
   });
 
-  // Streak is always real, regardless of pet age — it isn't part of the
-  // "starts clean" guarantee below.
-  const streak = currentStreakDays(recentReviews.map((r) => r.reviewedAt));
-
   const ageHours = (now.getTime() - petCreatedAt.getTime()) / (1000 * 60 * 60);
   if (ageHours < PET_GRACE_HOURS) {
-    return { health: 100, streak };
+    return { health: 100 };
   }
 
   const overdueCards = await db.card.findMany({
@@ -123,8 +89,6 @@ export async function getPetStats(
       overdueCount,
       overdueDaysSum,
       recentAccuracy,
-      currentStreakDays: streak,
     }),
-    streak,
   };
 }

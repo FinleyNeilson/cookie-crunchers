@@ -15,7 +15,7 @@ export function Toast({ message }: { message: string | false }) {
         borderRadius: 16,
         fontWeight: 700,
         fontSize: 14,
-        boxShadow: "0 6px 20px oklch(30% 0.05 60 / 0.25)",
+        boxShadow: "0 6px 20px oklch(30% 0.06 260 / 0.25)",
       }}
     >
       {message}

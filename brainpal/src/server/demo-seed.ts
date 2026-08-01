@@ -6,7 +6,7 @@ import { type PrismaClient } from "@prisma/client";
 const DEMO_DECKS: { name: string; cards: { front: string; back: string }[] }[] =
   [
     {
-      name: "Cell Biology — Ch.4",
+      name: "Cell Biology: Ch.4",
       cards: [
         {
           front: "What organelle produces most of a cell's ATP?",

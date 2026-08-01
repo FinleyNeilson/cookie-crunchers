@@ -19,6 +19,10 @@ import {
   NamePetScreen,
   SpeciesPickerScreen,
 } from "~/app/_components/pet-app/entry-screens";
+import {
+  GraduationScreen,
+  StageUpScreen,
+} from "~/app/_components/pet-app/screens/celebration-screens";
 import { DebugPanel } from "~/app/_components/pet-app/screens/debug-panel";
 import { DeckDetailScreen } from "~/app/_components/pet-app/screens/deck-detail-screen";
 import { DecksScreen } from "~/app/_components/pet-app/screens/decks-screen";
@@ -31,6 +35,7 @@ import { TopNav } from "~/app/_components/pet-app/screens/top-nav";
 import {
   type DeckSummary,
   type Grade,
+  type LifeStage,
   type PetState,
   type ReviewCard,
   type RetiredPet,
@@ -85,6 +90,27 @@ export function SignedInPetApp() {
   const [newDeckName, setNewDeckName] = useState("");
   const [selectedRetiredPet, setSelectedRetiredPet] =
     useState<RetiredPet | null>(null);
+  const [celebration, setCelebration] = useState<
+    | { kind: "stageUp"; stage: LifeStage; petName: string; species: Species }
+    | { kind: "graduated"; petName: string; species: Species }
+    | null
+  >(null);
+  // A review mid-session that triggers a stage-up celebration pauses
+  // instead of immediately moving to the next card/results — this is what
+  // to resume with once the celebration is dismissed. Graduation instead
+  // always ends the session (the pet that was growing no longer exists),
+  // so it never sets this.
+  const [pendingSessionStep, setPendingSessionStep] = useState<{
+    queue: ReviewCard[];
+    nextIndex: number;
+    newSessionCorrect: number;
+    newSessionTotal: number;
+  } | null>(null);
+  // True right after choosing "Return to village" on the graduation
+  // screen — lets the village render with the replacement egg still
+  // unhatched instead of forcing the species picker immediately, the way
+  // "Find a new egg" does.
+  const [awaitingNewEgg, setAwaitingNewEgg] = useState(false);
 
   function toast(msg: string) {
     setToastMsg(msg);
@@ -102,41 +128,62 @@ export function SignedInPetApp() {
   async function handleAddTestDecks() {
     const { createdCount } = await addTestDecks.mutateAsync();
     await invalidateAll();
-    toast(`🔧 Added ${createdCount} test decks`);
+    toast(`Added ${createdCount} test decks`);
   }
 
   async function handleClearTestDecks() {
     const { deletedCount } = await clearTestDecks.mutateAsync();
     await invalidateAll();
-    toast(`🔧 Cleared ${deletedCount} test decks`);
+    toast(`Cleared ${deletedCount} test decks`);
   }
 
   async function handleMatureAllCards() {
     const { maturedCount } = await matureAllCards.mutateAsync();
     await invalidateAll();
-    toast(`🔧 Matured ${maturedCount} cards`);
+    toast(`Matured ${maturedCount} cards`);
   }
 
   async function handleAdvanceStage() {
-    const { stage, reachedNextStage } = await advanceStage.mutateAsync();
+    const { stage, reachedNextStage, graduated } =
+      await advanceStage.mutateAsync();
     await invalidateAll();
-    toast(
-      reachedNextStage
-        ? `🔧 Advanced to ${STAGE_LABEL[stage]}`
-        : `🔧 Not enough unmatured cards left to reach the next stage (still ${STAGE_LABEL[stage]})`,
-    );
+    if (graduated) {
+      setCelebration({
+        kind: "graduated",
+        petName: graduated.name ?? "Your pet",
+        species: graduated.species as Species,
+      });
+    } else if (reachedNextStage) {
+      setCelebration({
+        kind: "stageUp",
+        stage,
+        petName: petDisplayName(
+          petQuery.data?.name,
+          petQuery.data?.species as Species | null | undefined,
+        ),
+        species: petQuery.data?.species as Species,
+      });
+    } else {
+      toast(
+        `Not enough unmatured cards left to reach the next stage (still ${STAGE_LABEL[stage]})`,
+      );
+    }
   }
 
   async function handleForceGraduate() {
-    await forceGraduate.mutateAsync();
+    const { graduated } = await forceGraduate.mutateAsync();
     await invalidateAll();
-    toast("🔧 Forced graduation");
+    setCelebration({
+      kind: "graduated",
+      petName: graduated.name ?? "Your pet",
+      species: graduated.species as Species,
+    });
   }
 
   async function handleForceDie() {
     await forceDie.mutateAsync();
     await invalidateAll();
-    toast("🔧 Forced death");
+    toast("Forced death");
   }
 
   async function handleResetAccount(): Promise<boolean> {
@@ -144,7 +191,7 @@ export function SignedInPetApp() {
       return false;
     await resetAccount.mutateAsync();
     await invalidateAll();
-    toast("🔧 Account reset");
+    toast("Account reset");
     return true;
   }
 
@@ -180,41 +227,25 @@ export function SignedInPetApp() {
   function goStudyNow() {
     const target = decksQuery.data?.find((d) => d.dueCards > 0);
     if (target) void startReview(target.id);
-    else toast("All caught up — no cards due right now!");
+    else toast("All caught up, no cards due right now!");
   }
 
-  async function grade(quality: Grade) {
-    const card = reviewCards[reviewIndex];
-    if (!card || isSubmittingReview) return;
-
-    setIsSubmittingReview(true);
-    let graduated: { name: string | null; species: string | null } | null =
-      null;
-    try {
-      const result = await submitReview.mutateAsync({
-        cardId: card.id,
-        grade: GRADE_TO_SM2[quality],
-      });
-      graduated = result.graduated;
-    } finally {
-      setIsSubmittingReview(false);
-    }
-
-    if (graduated) {
-      toast(`🎉 ${graduated.name ?? "Your pet"} grew into an adult!`);
-      void utils.pet.village.invalidate();
-    }
-
-    const correct = quality !== "again";
-    const newSessionCorrect = sessionCorrect + (correct ? 1 : 0);
-    const newSessionTotal = sessionTotal + 1;
-    // "Again" requeues the card at the end of this session instead of just
-    // moving on — SM-2 already pushed its real dueAt a full day out, but
-    // the point of grading something "Again" is to retry it now, not
-    // tomorrow.
-    const queue = quality === "again" ? [...reviewCards, card] : reviewCards;
-    const nextIndex = reviewIndex + 1;
-
+  // Finishes out a review session: either wraps up into the results screen
+  // (last card) or queues up the next one. Split out from grade() so a
+  // stage-up celebration can pause here and resume it later via
+  // dismissStageUp, instead of it always running inline right after
+  // submitReview.
+  async function advanceSession({
+    queue,
+    nextIndex,
+    newSessionCorrect,
+    newSessionTotal,
+  }: {
+    queue: ReviewCard[];
+    nextIndex: number;
+    newSessionCorrect: number;
+    newSessionTotal: number;
+  }) {
     if (nextIndex >= queue.length) {
       const accuracy = Math.round((newSessionCorrect / newSessionTotal) * 100);
 
@@ -230,7 +261,7 @@ export function SignedInPetApp() {
         accuracy >= 80
           ? `${petName} is thriving! Great study session.`
           : accuracy >= 50
-            ? `${petName} appreciates the effort — keep it up.`
+            ? `${petName} appreciates the effort, keep it up.`
             : `${petName} needs a bit more practice tomorrow.`;
 
       setResults({
@@ -251,6 +282,87 @@ export function SignedInPetApp() {
     }
   }
 
+  function dismissStageUp() {
+    setCelebration(null);
+    const pending = pendingSessionStep;
+    setPendingSessionStep(null);
+    if (pending) void advanceSession(pending);
+  }
+
+  function dismissGraduation(returnToVillage: boolean) {
+    setCelebration(null);
+    // Graduation always ends the session outright (see pendingSessionStep's
+    // comment) — nothing to resume, any cards left due just stay due.
+    setPendingSessionStep(null);
+    setAwaitingNewEgg(returnToVillage);
+    setScreen("home");
+  }
+
+  async function grade(quality: Grade) {
+    const card = reviewCards[reviewIndex];
+    if (!card || isSubmittingReview) return;
+
+    setIsSubmittingReview(true);
+    let graduated: { name: string | null; species: string | null } | null =
+      null;
+    let stageAdvanced: { from: LifeStage; to: LifeStage } | null = null;
+    try {
+      const result = await submitReview.mutateAsync({
+        cardId: card.id,
+        grade: GRADE_TO_SM2[quality],
+      });
+      graduated = result.graduated;
+      stageAdvanced = result.stageAdvanced;
+    } finally {
+      setIsSubmittingReview(false);
+    }
+
+    const correct = quality !== "again";
+    const newSessionCorrect = sessionCorrect + (correct ? 1 : 0);
+    const newSessionTotal = sessionTotal + 1;
+    // "Again" requeues the card at the end of this session instead of just
+    // moving on — SM-2 already pushed its real dueAt a full day out, but
+    // the point of grading something "Again" is to retry it now, not
+    // tomorrow.
+    const queue = quality === "again" ? [...reviewCards, card] : reviewCards;
+    const nextIndex = reviewIndex + 1;
+
+    if (graduated) {
+      await utils.pet.village.invalidate();
+      await utils.pet.get.invalidate();
+      setCelebration({
+        kind: "graduated",
+        petName: graduated.name ?? "Your pet",
+        // Growth only accrues after a species is chosen, so a pet that
+        // just graduated always has one.
+        species: graduated.species as Species,
+      });
+      return;
+    }
+
+    if (stageAdvanced) {
+      await utils.pet.get.invalidate();
+      setPendingSessionStep({
+        queue,
+        nextIndex,
+        newSessionCorrect,
+        newSessionTotal,
+      });
+      setCelebration({
+        kind: "stageUp",
+        stage: stageAdvanced.to,
+        petName: petDisplayName(
+          petQuery.data?.name,
+          petQuery.data?.species as Species | null | undefined,
+        ),
+        species: petQuery.data?.species as Species,
+      });
+      return;
+    }
+
+    await advanceSession({ queue, nextIndex, newSessionCorrect, newSessionTotal });
+  }
+
   if (decksQuery.isPending || petQuery.isPending) {
     return (
       <CenteredMessage>
@@ -264,11 +376,26 @@ export function SignedInPetApp() {
       <CenteredMessage>Something went wrong loading your data.</CenteredMessage>
     );
   }
-  if (!petQuery.data.species) {
+  // Checked ahead of the species gate below: right after graduating, the
+  // replacement pet has no species yet either, and the celebration screen
+  // needs to take over before that gate would otherwise force the species
+  // picker on top of it.
+  if (celebration?.kind === "graduated") {
+    return (
+      <GraduationScreen
+        petName={celebration.petName}
+        species={celebration.species}
+        onReturnToVillage={() => dismissGraduation(true)}
+        onFindNewEgg={() => dismissGraduation(false)}
+      />
+    );
+  }
+  if (!petQuery.data.species && !awaitingNewEgg) {
     return (
       <SpeciesPickerScreen
         onChoose={async (species) => {
           await setSpecies.mutateAsync({ species });
+          setAwaitingNewEgg(false);
           await utils.pet.get.invalidate();
         }}
       />
@@ -290,22 +417,37 @@ export function SignedInPetApp() {
 
   const decks: DeckSummary[] = decksQuery.data;
   const pet: PetState = {
-    name: petDisplayName(petQuery.data.name, petQuery.data.species as Species),
+    name: petDisplayName(
+      petQuery.data.name,
+      petQuery.data.species as Species | null,
+    ),
     hasCustomName: !!petQuery.data.name,
-    // Guarded above: petQuery.data.species is non-null here, and only ever
-    // set via setSpecies, which validates against the same Species union.
-    species: petQuery.data.species as Species,
+    // Null only in the awaitingNewEgg state — see the PetState.species
+    // comment.
+    species: petQuery.data.species as Species | null,
     health: petQuery.data.health,
-    streak: petQuery.data.streak,
     stage: petQuery.data.stage,
     growthPoints: petQuery.data.growthPoints,
   };
 
-  const speciesInfo = SPECIES[pet.species];
+  const speciesLabel = pet.species ? SPECIES[pet.species].label : "";
   const totalDue = decks.reduce((sum, d) => sum + d.dueCards, 0);
-  const mood =
-    pet.health >= 55 ? "happy" : pet.health >= 30 ? "neutral" : "sad";
   const isNeglected = pet.health < 30;
+
+  // Checked here (rather than alongside the graduated celebration above)
+  // because it needs `pet`/petDisplayName already resolved, and — unlike
+  // graduation — never coincides with a null species, so there's no
+  // ordering conflict with the gates above.
+  if (celebration?.kind === "stageUp") {
+    return (
+      <StageUpScreen
+        petName={celebration.petName}
+        species={celebration.species}
+        stage={celebration.stage}
+        onContinue={dismissStageUp}
+      />
+    );
+  }
 
   const nextStage = NEXT_STAGE[pet.stage];
   const stageFloor = STAGE_GROWTH_FLOOR[pet.stage];
@@ -328,9 +470,12 @@ export function SignedInPetApp() {
     accuracySeries.reduce((a, b) => a + b, 0) / accuracySeries.length,
   );
 
+  // Decks/Review require a species (growth can't accrue without one) — hide
+  // the tab entirely while awaiting a new egg instead of leaving a nav
+  // route open that would crash the moment it's used.
   const navItems: { key: Screen; label: string }[] = [
     { key: "home", label: "Village" },
-    { key: "decks", label: "Decks" },
+    ...(pet.species ? [{ key: "decks" as const, label: "Decks" }] : []),
   ];
 
   return (
@@ -341,15 +486,10 @@ export function SignedInPetApp() {
         flexDirection: "column",
         fontFamily: "'Nunito', sans-serif",
         color: INK,
-        background: screen === "home" ? "oklch(90% 0.05 95)" : PAPER,
+        background: screen === "home" ? "oklch(90% 0.045 230)" : PAPER,
       }}
     >
-      <TopNav
-        navItems={navItems}
-        screen={screen}
-        setScreen={setScreen}
-        streak={pet.streak}
-      />
+      <TopNav navItems={navItems} screen={screen} setScreen={setScreen} />
 
       <Toast message={toastMsg} />
 
@@ -393,9 +533,7 @@ export function SignedInPetApp() {
       {screen === "home" && (
         <HomeScreen
           pet={pet}
-          speciesColor={speciesInfo.color}
-          speciesLabel={speciesInfo.label}
-          mood={mood}
+          speciesLabel={speciesLabel}
           isNeglected={isNeglected}
           growthProgressPct={growthProgressPct}
           growthRightLabel={growthRightLabel}
@@ -405,12 +543,15 @@ export function SignedInPetApp() {
           retiredPets={villageQuery.data}
           onSelectRetiredPet={setSelectedRetiredPet}
           onStudyNow={goStudyNow}
+          onHatchNewEgg={() => setAwaitingNewEgg(false)}
         />
       )}
 
       {/* OTHER SCREENS */}
       <div
         style={{
+          display: "flex",
+          flexDirection: "column",
           flex: screen === "home" ? "0 0 auto" : "1 1 auto",
           // Contain overflow inside this panel instead of growing the page:
           // minHeight: 0 lets a flex item actually shrink to its allotted
@@ -447,8 +588,6 @@ export function SignedInPetApp() {
         {screen === "review" && (
           <ReviewScreen
             pet={pet}
-            speciesColor={speciesInfo.color}
-            mood={mood}
             reviewCards={reviewCards}
             reviewIndex={reviewIndex}
             flipped={flipped}
@@ -463,7 +602,6 @@ export function SignedInPetApp() {
           <ResultsScreen
             results={results}
             pet={pet}
-            speciesColor={speciesInfo.color}
             onBackHome={() => setScreen("home")}
           />
         )}

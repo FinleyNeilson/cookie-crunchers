@@ -180,7 +180,15 @@ export function DecksScreen({
       style={{
         display: "flex",
         flexDirection: "column",
-        height: "100%",
+        // `flex: 1` (not `height: "100%"`) so this actually stretches to
+        // fill the parent panel. height:100% here silently resolved to the
+        // content's own height instead (percentage heights don't reliably
+        // resolve against a flex-grown ancestor unless that ancestor is
+        // itself a flex container), so the deck grid below was shrinking to
+        // fit however many cards a filter/search left on the page, which
+        // fed back into useGridPageSize computing fewer rows — the fewer
+        // decks matched a filter, the fewer decks could even fit per page.
+        flex: 1,
         minHeight: 0,
       }}
     >
@@ -210,8 +218,8 @@ export function DecksScreen({
               padding: "12px 20px",
               border: "none",
               borderRadius: 16,
-              background: "oklch(87% 0.07 150)",
-              color: "oklch(32% 0.06 150)",
+              background: "oklch(87% 0.08 140)",
+              color: "oklch(32% 0.07 140)",
               fontWeight: 800,
               fontSize: 14,
               cursor: "pointer",
@@ -226,7 +234,7 @@ export function DecksScreen({
               border: "none",
               borderRadius: 16,
               background: GOLDEN,
-              color: "oklch(30% 0.08 85)",
+              color: "oklch(30% 0.09 97)",
               fontWeight: 800,
               fontSize: 14,
               cursor: "pointer",
@@ -292,7 +300,7 @@ export function DecksScreen({
               padding: "10px 18px",
               border: "none",
               borderRadius: 12,
-              background: "oklch(91% 0.02 80)",
+              background: "oklch(91% 0.03 230)",
               color: INK,
               fontWeight: 800,
               fontSize: 14,
@@ -315,19 +323,6 @@ export function DecksScreen({
         }}
       >
         <div style={{ position: "relative", flex: "1 1 240px", minWidth: 200 }}>
-          <span
-            style={{
-              position: "absolute",
-              left: 14,
-              top: "50%",
-              transform: "translateY(-50%)",
-              opacity: 0.5,
-              fontSize: 14,
-              pointerEvents: "none",
-            }}
-          >
-            🔍
-          </span>
           <input
             value={search}
             onChange={(e) => updateSearch(e.target.value)}
@@ -335,7 +330,7 @@ export function DecksScreen({
             style={{
               ...inputStyle,
               width: "100%",
-              padding: "10px 14px 10px 38px",
+              padding: "10px 14px",
             }}
           />
         </div>
@@ -344,7 +339,7 @@ export function DecksScreen({
           style={{
             display: "flex",
             gap: 4,
-            background: "oklch(94% 0.03 80)",
+            background: "oklch(94% 0.035 230)",
             padding: 4,
             borderRadius: 14,
           }}
@@ -356,10 +351,10 @@ export function DecksScreen({
               style={{
                 border: "none",
                 background:
-                  filter === f.key ? "oklch(88% 0.08 40)" : "transparent",
+                  filter === f.key ? "oklch(88% 0.09 42)" : "transparent",
                 color:
                   filter === f.key
-                    ? "oklch(50% 0.13 38)"
+                    ? "oklch(50% 0.15 42)"
                     : "oklch(45% 0.04 255 / 0.65)",
                 padding: "9px 14px",
                 borderRadius: 10,
@@ -499,9 +494,9 @@ function PageButton({
         height: 32,
         border: "none",
         borderRadius: 10,
-        background: active ? "oklch(88% 0.08 40)" : "transparent",
+        background: active ? "oklch(88% 0.09 42)" : "transparent",
         color: active
-          ? "oklch(50% 0.13 38)"
+          ? "oklch(50% 0.15 42)"
           : disabled
             ? "oklch(70% 0.02 255 / 0.5)"
             : INK,
@@ -527,8 +522,8 @@ function DeckCard({
   onManage: () => void;
 }) {
   const badgeLabel = deck.dueCards > 0 ? `${deck.dueCards} due` : "All done";
-  const badgeBg = deck.dueCards > 0 ? "oklch(90% 0.08 55)" : MASTERED_GREEN_BG;
-  const badgeColor = deck.dueCards > 0 ? "oklch(46% 0.12 40)" : MASTERED_GREEN;
+  const badgeBg = deck.dueCards > 0 ? "oklch(90% 0.09 42)" : MASTERED_GREEN_BG;
+  const badgeColor = deck.dueCards > 0 ? "oklch(46% 0.14 42)" : MASTERED_GREEN;
   const xpPct =
     deck.xpToNextLevel > 0
       ? Math.round((deck.xpInLevel / deck.xpToNextLevel) * 100)
@@ -541,7 +536,7 @@ function DeckCard({
         borderRadius: 16,
         padding: 14,
         border: `2px solid ${CARD_LINE}`,
-        boxShadow: "0 6px 18px oklch(35% 0.05 60 / 0.08)",
+        boxShadow: "0 6px 18px oklch(35% 0.06 260 / 0.08)",
       }}
     >
       <div
@@ -598,7 +593,7 @@ function DeckCard({
         style={{
           height: 6,
           borderRadius: 4,
-          background: "oklch(91% 0.02 80)",
+          background: "oklch(91% 0.03 230)",
           marginTop: 4,
           overflow: "hidden",
         }}
@@ -633,7 +628,7 @@ function DeckCard({
         ) : deck.totalCards > 0 ? (
           <button
             onClick={onPractice}
-            title="Study these cards even though nothing's due yet — still submits real reviews"
+            title="Study these cards even though nothing's due yet, still submits real reviews"
             style={{
               flex: 1,
               padding: 9,
@@ -656,7 +651,7 @@ function DeckCard({
               padding: 9,
               border: "none",
               borderRadius: 12,
-              background: "oklch(91% 0.02 80)",
+              background: "oklch(91% 0.03 230)",
               color: "oklch(60% 0.02 255 / 0.5)",
               fontWeight: 800,
               fontSize: 13,

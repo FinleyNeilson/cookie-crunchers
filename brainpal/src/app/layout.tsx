@@ -6,9 +6,9 @@ import { SessionProvider } from "next-auth/react";
 import { TRPCReactProvider } from "~/trpc/react";
 
 export const metadata: Metadata = {
-  title: "Hatchly — Pet-Powered Flashcards",
+  title: "Spaced Eggs",
   description: "Keep your study pet happy by clearing your flashcard reviews.",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [{ rel: "icon", url: "/pets/egg.svg", type: "image/svg+xml" }],
 };
 
 export default function RootLayout({

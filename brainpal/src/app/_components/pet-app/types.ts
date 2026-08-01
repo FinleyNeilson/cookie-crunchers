@@ -1,6 +1,6 @@
 import { type RouterOutputs } from "~/trpc/react";
 
-export type Species = "fox" | "owl" | "otter" | "bunny" | "hopling" | "twirlet";
+export type Species = "bunny" | "frog" | "monkey" | "oldman";
 export type LifeStage = "egg" | "child" | "teen" | "adult";
 export type Screen = "home" | "decks" | "review" | "results" | "deckDetail";
 export type Grade = "again" | "hard" | "good" | "easy";
@@ -14,11 +14,15 @@ export interface PetState {
   name: string;
   // False while `name` is still the "{Species} Hatchling" placeholder
   // (see petDisplayName in signed-in-pet-app.tsx) — lets screens avoid
-  // redundant phrasing like "Fox Hatchling the Fox".
+  // redundant phrasing like "Bunny Hatchling the Bunny".
   hasCustomName: boolean;
-  species: Species;
+  // Null only right after graduation, while the replacement pet is waiting
+  // on the village screen for the player to hatch a new egg — see
+  // `awaitingNewEgg` in signed-in-pet-app.tsx. Every other screen (Decks,
+  // Review, Results) is unreachable in that state, so they can assume a
+  // real species.
+  species: Species | null;
   health: number;
-  streak: number;
   stage: LifeStage;
   growthPoints: number;
 }

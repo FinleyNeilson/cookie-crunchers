@@ -36,10 +36,12 @@ accumulates a *history* of pets, not a single permanent one.)
   over time. The active pet is whichever row has `retiredAt: null`
   (`getActivePet` in `server/pet/growth.ts`); if none exists, one is
   created. Reviewing history from prior pets is retained, not deleted.
-- `health` (0-100) is unchanged in mechanism from the original decision:
-  computed at read time from overdue card count/age, recent accuracy, and
-  streak length, aggregated from `ReviewLog` + `Card.dueAt`
-  (`server/pet/health.ts`).
+- `health` (0-100) is computed at read time from overdue card count/age and
+  recent accuracy, aggregated from `ReviewLog` + `Card.dueAt`
+  (`server/pet/health.ts`). There is deliberately no daily-login-streak
+  bonus/factor anywhere in this formula or the UI (see vision.md's "Bounded
+  survival, not infinite streak") — an earlier revision had one and it was
+  removed.
 - **Growth/lifecycle** is a second, separate axis, added after the original
   decision: a `LifeStage` (`egg | child | teen | adult`) derived from
   "growth points" — `getGrowthPoints` sums, per card reviewed since the

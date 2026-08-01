@@ -16,7 +16,7 @@ export function RetiredPetPopup({
         position: "fixed",
         inset: 0,
         zIndex: 60,
-        background: "oklch(20% 0.02 255 / 0.35)",
+        background: "oklch(20% 0.05 260 / 0.35)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -54,15 +54,15 @@ export function RetiredPetPopup({
           }}
         >
           {pet.retirementReason === "died"
-            ? `👻 Passed away${pet.retiredAt ? ` ${new Date(pet.retiredAt).toLocaleDateString()}` : ""}`
-            : `🎓 Graduated${pet.retiredAt ? ` ${new Date(pet.retiredAt).toLocaleDateString()}` : ""}`}
+            ? `Passed away${pet.retiredAt ? ` ${new Date(pet.retiredAt).toLocaleDateString()}` : ""}`
+            : `Graduated${pet.retiredAt ? ` ${new Date(pet.retiredAt).toLocaleDateString()}` : ""}`}
         </div>
         <button
           onClick={onClose}
           style={{
             marginTop: 16,
             border: "none",
-            background: "oklch(91% 0.02 80)",
+            background: "oklch(91% 0.03 230)",
             color: INK,
             fontWeight: 800,
             fontSize: 13,

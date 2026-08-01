@@ -13,12 +13,10 @@ export function TopNav({
   navItems,
   screen,
   setScreen,
-  streak,
 }: {
   navItems: { key: Screen; label: string }[];
   screen: Screen;
   setScreen: (screen: Screen) => void;
-  streak: number;
 }) {
   return (
     <div
@@ -26,34 +24,45 @@ export function TopNav({
         position: "sticky",
         top: 0,
         zIndex: 40,
-        display: "flex",
+        display: "grid",
+        // Both outer columns get equal flexible space, so the middle
+        // (nav pill) column is always truly centered on the bar — a
+        // flex row with justify-content:space-between only centers the
+        // middle item when the two outer items happen to be the same
+        // width, which the logo and sign-out button aren't.
+        gridTemplateColumns: "1fr auto 1fr",
         alignItems: "center",
-        justifyContent: "space-between",
         gap: 16,
         padding: "12px 24px",
-        background: "oklch(98% 0.02 80 / 0.85)",
+        background: "oklch(97% 0.03 90 / 0.85)",
         backdropFilter: "blur(10px)",
         borderBottom: `1px solid ${CARD_LINE}`,
       }}
     >
       <div
         style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
           fontFamily: "'Baloo 2', sans-serif",
           fontWeight: 800,
           fontSize: 21,
           color: INK,
           whiteSpace: "nowrap",
+          justifySelf: "start",
         }}
       >
-        🥚 Hatchly
+        <img src="/pets/egg.svg" alt="" style={{ width: 48, height: "auto" }} />
+        Spaced Eggs
       </div>
       <div
         style={{
           display: "flex",
           gap: 4,
-          background: "oklch(94% 0.03 80)",
+          background: "oklch(94% 0.035 230)",
           padding: 4,
           borderRadius: 16,
+          justifySelf: "center",
         }}
       >
         {navItems.map((item) => (
@@ -63,7 +72,7 @@ export function TopNav({
             style={{
               border: "none",
               background:
-                screen === item.key ? "oklch(88% 0.08 40)" : "transparent",
+                screen === item.key ? "oklch(88% 0.09 42)" : "transparent",
               color:
                 screen === item.key
                   ? TERRACOTTA_DEEP
@@ -79,31 +88,14 @@ export function TopNav({
           </button>
         ))}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            background: "oklch(90% 0.09 55)",
-            padding: "8px 14px",
-            borderRadius: 14,
-            whiteSpace: "nowrap",
-          }}
-        >
-          <div
-            style={{
-              width: 9,
-              height: 9,
-              borderRadius: "50%",
-              background: "oklch(70% 0.15 45)",
-              flexShrink: 0,
-            }}
-          />
-          <div style={{ fontWeight: 800, fontSize: 13 }}>
-            {streak}-day streak
-          </div>
-        </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          justifySelf: "end",
+        }}
+      >
         <button
           onClick={() => void signOut()}
           style={{

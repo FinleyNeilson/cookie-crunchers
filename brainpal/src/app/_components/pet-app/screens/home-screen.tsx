@@ -1,11 +1,12 @@
 import {
   CARD_BG,
   CARD_LINE,
+  INK,
   STAGE_LABEL,
   STAGE_SIZE,
   TERRACOTTA,
 } from "~/app/_components/pet-app/constants";
-import { Cloud, PetPortrait } from "~/app/_components/pet-app/pet-visuals";
+import { PetPortrait } from "~/app/_components/pet-app/pet-visuals";
 import {
   type PetState,
   type RetiredPet,
@@ -13,11 +14,37 @@ import {
 import { StatBar, StatTile } from "~/app/_components/pet-app/ui";
 import { RetiredPetSprite } from "~/app/_components/pet-app/village";
 
+// Stands in for the replacement pet while awaiting a new egg (species
+// still null — see PetState.species) — deliberately not just another Egg
+// portrait, since there's no species yet to hint at. A featureless void
+// instead, doubling as the button into the species picker.
+function VoidEgg({ size, onClick }: { size: number; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label="Choose your next companion"
+      style={{
+        width: size,
+        height: size,
+        padding: 0,
+        border: `3px solid ${INK}`,
+        borderRadius: "50% 50% 50% 50% / 62% 62% 38% 38%",
+        background:
+          "radial-gradient(circle at 38% 32%, oklch(22% 0.01 260), oklch(4% 0.01 260) 72%)",
+        boxShadow: "inset 0 0 22px oklch(0% 0 0 / 0.7)",
+        cursor: "pointer",
+        // Overrides the pointerEvents:"none" this sits inside (see the
+        // wrapping row's comment below) — everything else in that row is
+        // purely decorative, but this one thing needs to be clickable.
+        pointerEvents: "auto",
+      }}
+    />
+  );
+}
+
 export function HomeScreen({
   pet,
-  speciesColor,
   speciesLabel,
-  mood,
   isNeglected,
   growthProgressPct,
   growthRightLabel,
@@ -27,11 +54,10 @@ export function HomeScreen({
   retiredPets,
   onSelectRetiredPet,
   onStudyNow,
+  onHatchNewEgg,
 }: {
   pet: PetState;
-  speciesColor: string;
   speciesLabel: string;
-  mood: "happy" | "neutral" | "sad";
   isNeglected: boolean;
   growthProgressPct: number;
   growthRightLabel: string;
@@ -41,48 +67,25 @@ export function HomeScreen({
   retiredPets: RetiredPet[] | undefined;
   onSelectRetiredPet: (pet: RetiredPet) => void;
   onStudyNow: () => void;
+  // Only ever called while pet.species is null — right after graduation,
+  // when the player chose "Return to village" over "Find a new egg" and is
+  // now looking at the replacement egg waiting to be hatched.
+  onHatchNewEgg: () => void;
 }) {
+  const hasSpecies = pet.species !== null;
   return (
     <div
       style={{
         position: "relative",
         overflow: "hidden",
         flex: "1 1 auto",
-        background:
-          "linear-gradient(180deg, oklch(92% 0.05 70) 0%, oklch(93% 0.04 82) 40%, oklch(91% 0.05 95) 68%)",
+        backgroundImage: "url(/village-bg.png)",
+        backgroundSize: "cover",
+        backgroundPosition: "center 20%",
+        backgroundRepeat: "no-repeat",
         paddingBottom: 56,
       }}
     >
-      <div
-        style={{
-          position: "absolute",
-          top: 36,
-          right: 64,
-          width: 84,
-          height: 84,
-          borderRadius: "50%",
-          background: "oklch(88% 0.13 90)",
-          boxShadow: "0 0 60px oklch(88% 0.13 90 / 0.55)",
-        }}
-      />
-      <Cloud top={64} left="8%" scale={1} />
-      <Cloud top={112} left="58%" scale={0.7} />
-      <Cloud top={38} left="34%" scale={0.5} />
-
-      <div
-        style={{
-          position: "absolute",
-          bottom: 0,
-          left: "-10%",
-          width: "120%",
-          height: 300,
-          borderRadius: "50% 50% 0 0",
-          background:
-            "linear-gradient(180deg, oklch(80% 0.09 140), oklch(70% 0.1 140))",
-          boxShadow: "inset 0 14px 0 oklch(86% 0.08 140 / 0.55)",
-        }}
-      />
-
       {retiredPets?.map((retired) => (
         <RetiredPetSprite
           key={retired.id}
@@ -125,18 +128,17 @@ export function HomeScreen({
               animation: "petBounce 2.6s ease-in-out infinite",
             }}
           >
-            <PetPortrait
-              pet={pet}
-              color={speciesColor}
-              mood={mood}
-              size={STAGE_SIZE[pet.stage]}
-            />
+            {hasSpecies ? (
+              <PetPortrait pet={pet} size={STAGE_SIZE[pet.stage]} />
+            ) : (
+              <VoidEgg size={STAGE_SIZE.egg} onClick={onHatchNewEgg} />
+            )}
           </div>
           <div
             style={{
               textAlign: "center",
               marginTop: 4,
-              background: "oklch(98% 0.02 80 / 0.9)",
+              background: "oklch(98% 0.03 90 / 0.9)",
               padding: "6px 14px",
               borderRadius: 14,
               border: `2px solid ${CARD_LINE}`,
@@ -149,7 +151,11 @@ export function HomeScreen({
                 fontSize: 18,
               }}
             >
-              {pet.hasCustomName ? `${pet.name} the ${speciesLabel}` : pet.name}
+              {hasSpecies
+                ? pet.hasCustomName
+                  ? `${pet.name} the ${speciesLabel}`
+                  : pet.name
+                : "A new arrival awaits"}
             </div>
             <div
               style={{
@@ -160,7 +166,9 @@ export function HomeScreen({
                 letterSpacing: "0.06em",
               }}
             >
-              {STAGE_LABEL[pet.stage]} · {pet.health}% health
+              {hasSpecies
+                ? `${STAGE_LABEL[pet.stage]} · ${pet.health}% health`
+                : "Ready when you are"}
             </div>
           </div>
         </div>
@@ -176,25 +184,25 @@ export function HomeScreen({
           borderRadius: 28,
           padding: "26px 26px 24px",
           border: `2px solid ${CARD_LINE}`,
-          boxShadow: "0 14px 34px oklch(35% 0.05 60 / 0.16)",
+          boxShadow: "0 14px 34px oklch(35% 0.06 260 / 0.16)",
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <StatBar
             label={`Growth · ${STAGE_LABEL[pet.stage]}`}
             value={growthProgressPct}
-            hue={40}
+            hue={42}
             rightLabel={growthRightLabel}
           />
-          <StatBar label="Health" value={pet.health} hue={150} />
+          <StatBar label="Health" value={pet.health} hue={140} />
         </div>
 
-        {isNeglected && (
+        {isNeglected && hasSpecies && (
           <div
             style={{
               marginTop: 16,
-              background: "oklch(90% 0.06 40)",
-              color: "oklch(36% 0.09 35)",
+              background: "oklch(90% 0.07 42)",
+              color: "oklch(36% 0.1 42)",
               fontWeight: 700,
               fontSize: 13,
               padding: "10px 12px",
@@ -202,12 +210,12 @@ export function HomeScreen({
               textAlign: "center",
             }}
           >
-            {pet.name} feels neglected — study today to cheer them up.
+            {pet.name} feels neglected, study today to cheer them up.
           </div>
         )}
 
         <button
-          onClick={onStudyNow}
+          onClick={hasSpecies ? onStudyNow : onHatchNewEgg}
           style={{
             marginTop: 18,
             width: "100%",
@@ -220,10 +228,10 @@ export function HomeScreen({
             fontWeight: 700,
             fontSize: 16,
             cursor: "pointer",
-            boxShadow: "0 8px 20px oklch(66% 0.13 40 / 0.35)",
+            boxShadow: "0 8px 20px oklch(70% 0.17 42 / 0.35)",
           }}
         >
-          Study now — {totalDue} due
+          {hasSpecies ? `Study now: ${totalDue} due` : "Choose your next companion"}
         </button>
 
         <div

@@ -56,10 +56,11 @@ features get built:
 The pet has two distinct axes, both driven by SRS data rather than
 "studying in general":
 
-- **Health** (0-100) — computed from overdue card count/age, recent
-  accuracy, and streak length. On-time, accurate reviews raise it; overdue
-  cards decay it over time. This is the moment-to-moment "is my review
-  queue healthy" readout.
+- **Health** (0-100) — computed from overdue card count/age and recent
+  accuracy. On-time, accurate reviews raise it; overdue cards decay it over
+  time. This is the moment-to-moment "is my review queue healthy" readout.
+  No daily-streak bonus feeds into this or anywhere else in the app, by
+  design (see "Bounded survival, not infinite streak" above).
 - **Growth/lifecycle** — the pet ages through stages (egg → child → teen →
   adult) based on aggregate review pace: cards contribute more growth the
   longer their SM-2 interval has stretched, so consistently-recalled cards

@@ -13,8 +13,6 @@ import {
 
 export function ReviewScreen({
   pet,
-  speciesColor,
-  mood,
   reviewCards,
   reviewIndex,
   flipped,
@@ -24,8 +22,6 @@ export function ReviewScreen({
   onBack,
 }: {
   pet: PetState;
-  speciesColor: string;
-  mood: "happy" | "neutral" | "sad";
   reviewCards: ReviewCard[];
   reviewIndex: number;
   flipped: boolean;
@@ -43,7 +39,7 @@ export function ReviewScreen({
           onClick={onBack}
           style={{
             border: "none",
-            background: "oklch(91% 0.02 80)",
+            background: "oklch(91% 0.03 230)",
             width: 36,
             height: 36,
             borderRadius: "50%",
@@ -60,7 +56,7 @@ export function ReviewScreen({
             flex: 1,
             height: 10,
             borderRadius: 6,
-            background: "oklch(91% 0.02 80)",
+            background: "oklch(91% 0.03 230)",
             overflow: "hidden",
           }}
         >
@@ -94,7 +90,7 @@ export function ReviewScreen({
         }}
       >
         <div style={{ width: 78, height: 78 }}>
-          <PetPortrait pet={pet} color={speciesColor} mood={mood} size={78} />
+          <PetPortrait pet={pet} size={78} />
         </div>
       </div>
 
@@ -112,7 +108,7 @@ export function ReviewScreen({
           justifyContent: "center",
           textAlign: "center",
           border: `2px solid ${CARD_LINE}`,
-          boxShadow: "0 12px 30px oklch(35% 0.05 60 / 0.12)",
+          boxShadow: "0 12px 30px oklch(35% 0.06 260 / 0.12)",
           cursor: "pointer",
         }}
       >
@@ -171,8 +167,8 @@ export function ReviewScreen({
               padding: 16,
               border: "none",
               borderRadius: 16,
-              background: "oklch(87% 0.09 20)",
-              color: "oklch(34% 0.1 20)",
+              background: "oklch(87% 0.11 350)",
+              color: "oklch(34% 0.13 350)",
               fontWeight: 800,
               fontSize: 14,
               cursor: isSubmittingReview ? "default" : "pointer",
@@ -191,8 +187,8 @@ export function ReviewScreen({
               padding: 16,
               border: "none",
               borderRadius: 16,
-              background: "oklch(88% 0.08 60)",
-              color: "oklch(36% 0.09 55)",
+              background: "oklch(88% 0.1 50)",
+              color: "oklch(36% 0.11 50)",
               fontWeight: 800,
               fontSize: 14,
               cursor: isSubmittingReview ? "default" : "pointer",
@@ -211,8 +207,8 @@ export function ReviewScreen({
               padding: 16,
               border: "none",
               borderRadius: 16,
-              background: "oklch(87% 0.08 150)",
-              color: "oklch(34% 0.08 150)",
+              background: "oklch(87% 0.09 140)",
+              color: "oklch(34% 0.09 140)",
               fontWeight: 800,
               fontSize: 14,
               cursor: isSubmittingReview ? "default" : "pointer",
@@ -231,8 +227,8 @@ export function ReviewScreen({
               padding: 16,
               border: "none",
               borderRadius: 16,
-              background: "oklch(88% 0.08 88)",
-              color: "oklch(38% 0.09 85)",
+              background: "oklch(88% 0.09 97)",
+              color: "oklch(38% 0.1 97)",
               fontWeight: 800,
               fontSize: 14,
               cursor: isSubmittingReview ? "default" : "pointer",

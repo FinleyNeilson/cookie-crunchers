@@ -5,7 +5,9 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import {
   getActivePet,
   getGrowthPoints,
+  graduatePet,
   stageForMastery,
+  type LifeStage,
 } from "~/server/pet/growth";
 import { sm2 } from "~/server/srs/sm2";
 
@@ -53,6 +55,18 @@ export const reviewRouter = createTRPCRouter({
         input.grade,
       );
 
+      // Growth is scoped to the active pet's lifetime, not the account's
+      // whole review history — see server/pet/growth.ts. getActivePet also
+      // resolves any health-triggered death from before this review, so a
+      // graduation check here always applies to whichever pet is actually
+      // current at this moment. Snapshotted *before* the update below so a
+      // stage change caused by this review can be detected by comparing
+      // against the stage after.
+      const activePet = await getActivePet(ctx.db, ctx.session.user.id);
+      const stageBefore = stageForMastery(
+        await getGrowthPoints(ctx.db, ctx.session.user.id, activePet.createdAt),
+      );
+
       const [, reviewLog] = await ctx.db.$transaction([
         ctx.db.card.update({
           where: { id: card.id },
@@ -75,30 +89,24 @@ export const reviewRouter = createTRPCRouter({
         }),
       ]);
 
-      // Growth is scoped to the active pet's lifetime, not the account's
-      // whole review history — see server/pet/growth.ts. getActivePet also
-      // resolves any health-triggered death from before this review, so a
-      // graduation check here always applies to whichever pet is actually
-      // current at this moment.
-      const activePet = await getActivePet(ctx.db, ctx.session.user.id);
       const growthPoints = await getGrowthPoints(
         ctx.db,
         ctx.session.user.id,
         activePet.createdAt,
       );
+      const stageAfter = stageForMastery(growthPoints);
 
       let graduated: { name: string | null; species: string | null } | null =
         null;
+      let stageAdvanced: { from: LifeStage; to: LifeStage } | null = null;
 
-      if (stageForMastery(growthPoints) === "adult") {
-        await ctx.db.pet.update({
-          where: { id: activePet.id },
-          data: { retiredAt: new Date(), retirementReason: "graduated" },
-        });
-        await ctx.db.pet.create({ data: { userId: ctx.session.user.id } });
-        graduated = { name: activePet.name, species: activePet.species };
+      if (stageAfter !== stageBefore) {
+        stageAdvanced = { from: stageBefore, to: stageAfter };
+        if (stageAfter === "adult") {
+          graduated = await graduatePet(ctx.db, ctx.session.user.id, activePet);
+        }
       }
 
-      return { reviewLog, graduated };
+      return { reviewLog, graduated, stageAdvanced };
     }),
 });

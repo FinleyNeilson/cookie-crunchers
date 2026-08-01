@@ -8,7 +8,7 @@ import {
   stageForMastery,
 } from "~/server/pet/growth";
 
-const SPECIES = ["fox", "owl", "otter", "bunny", "hopling", "twirlet"] as const;
+const SPECIES = ["bunny", "frog", "monkey", "oldman"] as const;
 
 export const petRouter = createTRPCRouter({
   get: protectedProcedure.query(async ({ ctx }) => {

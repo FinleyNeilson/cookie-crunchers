@@ -4,25 +4,24 @@ import {
   type Species,
 } from "~/app/_components/pet-app/types";
 
-// Cozy palette, keyed off the hand-drawn pet sprites in docs/assets/: deep
-// navy outline, warm cream paper, soft blush/butter/sage accents.
-export const INK = "oklch(32% 0.08 255)";
-export const PAPER = "oklch(96% 0.03 80)";
-export const CARD_BG = "oklch(98% 0.02 80)";
-export const CARD_LINE = "oklch(87% 0.04 75)";
-export const TERRACOTTA = "oklch(66% 0.13 40)";
-export const TERRACOTTA_DEEP = "oklch(50% 0.13 38)";
-export const BUTTER_DEEP = "oklch(68% 0.12 88)";
-export const SAGE_DEEP = "oklch(56% 0.09 150)";
-export const BLUSH = "oklch(87% 0.07 25)";
-export const GOLDEN = "oklch(76% 0.14 95)";
-export const LEAF = "oklch(60% 0.11 140)";
+// Palette sampled from the village background illustration
+// (public/village-bg.png): royal-blue outline, sky-blue paper, sunshine
+// gold, grass green, and pops of coral/rose — see that image for the
+// source colors this is keyed off.
+export const INK = "oklch(30% 0.11 260)";
+export const PAPER = "oklch(94% 0.035 230)";
+export const CARD_BG = "oklch(98% 0.03 90)";
+export const CARD_LINE = "oklch(85% 0.05 250)";
+export const TERRACOTTA = "oklch(70% 0.17 42)";
+export const TERRACOTTA_DEEP = "oklch(54% 0.17 42)";
+export const GOLDEN = "oklch(82% 0.15 97)";
+export const LEAF = "oklch(64% 0.15 140)";
 
 // Decks-screen-specific accents (matches the "Study" button and
 // mastered/done state in the deck-card redesign).
-export const MAROON = "oklch(35% 0.11 25)";
-export const MASTERED_GREEN = "oklch(52% 0.1 150)";
-export const MASTERED_GREEN_BG = "oklch(91% 0.05 150)";
+export const MAROON = "oklch(34% 0.15 350)";
+export const MASTERED_GREEN = "oklch(50% 0.13 140)";
+export const MASTERED_GREEN_BG = "oklch(90% 0.07 140)";
 
 export const STAGE_LABEL: Record<LifeStage, string> = {
   egg: "Egg",
@@ -54,23 +53,18 @@ export const NEXT_STAGE: Record<LifeStage, LifeStage | null> = {
 };
 
 export const SPECIES: Record<Species, { label: string; color: string }> = {
-  fox: { label: "Fox", color: TERRACOTTA },
-  owl: { label: "Owl", color: BUTTER_DEEP },
-  otter: { label: "Otter", color: SAGE_DEEP },
   bunny: { label: "Bunny", color: INK },
-  // Sprite art in public/pets/hopling.png: yellow, tall rabbit-like ears,
-  // big round eyes — its own species, not a bunny variant.
-  hopling: { label: "Hopling", color: GOLDEN },
-  // Sprite art in public/pets/twirlet.png: peach, swept-back ear tufts,
-  // curly antenna, green feet.
-  twirlet: { label: "Twirlet", color: LEAF },
+  frog: { label: "Frog", color: LEAF },
+  monkey: { label: "Monkey", color: TERRACOTTA_DEEP },
+  oldman: { label: "Old Man", color: GOLDEN },
 };
 
-// Species with real sprite art (vs. the CSS-drawn fox/owl/otter faces).
-export const SPECIES_IMAGE: Partial<Record<Species, string>> = {
-  bunny: "/pets/bunny.png",
-  hopling: "/pets/hopling.png",
-  twirlet: "/pets/twirlet.png",
+// Every species has hand-drawn sprite art — see PetFace in pet-visuals.tsx.
+export const SPECIES_IMAGE: Record<Species, string> = {
+  bunny: "/pets/bunny.svg",
+  frog: "/pets/frog.svg",
+  monkey: "/pets/monkey.svg",
+  oldman: "/pets/oldman.svg",
 };
 
 // SM-2 quality grade (0-5) each review button maps to — see server/srs/sm2.ts.

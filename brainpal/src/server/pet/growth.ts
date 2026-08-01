@@ -123,6 +123,24 @@ export function computeDeckLevel(
   };
 }
 
+// Retires a pet as graduated and spawns its blank replacement — the one
+// path all three graduation triggers (a real review crossing into "adult",
+// and the debug advanceStage/forceGraduate endpoints) share, so "reaching
+// adult" reliably means the same thing everywhere instead of debug tools
+// silently doing something different from the real flow.
+export async function graduatePet(
+  db: PrismaClient,
+  userId: string,
+  pet: { id: string; name: string | null; species: string | null },
+): Promise<{ name: string | null; species: string | null }> {
+  await db.pet.update({
+    where: { id: pet.id },
+    data: { retiredAt: new Date(), retirementReason: "graduated" },
+  });
+  await db.pet.create({ data: { userId } });
+  return { name: pet.name, species: pet.species };
+}
+
 // userId isn't unique on Pet (a user accumulates a history of retired
 // pets), so "the current pet" is whichever row has retiredAt: null. This
 // is also where a pet's death gets discovered — there's no cron job, so

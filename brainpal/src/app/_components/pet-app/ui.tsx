@@ -1,4 +1,55 @@
-import { CARD_BG, CARD_LINE, INK } from "~/app/_components/pet-app/constants";
+import {
+  CARD_BG,
+  CARD_LINE,
+  INK,
+  TERRACOTTA,
+} from "~/app/_components/pet-app/constants";
+
+// Three pulsing dots scattered around a centered pet portrait, used to mark
+// a celebratory moment (session results, stage-up, graduation) without a
+// full confetti/animation library.
+export function Sparkles() {
+  return (
+    <>
+      <div
+        style={{
+          position: "absolute",
+          top: -6,
+          left: "28%",
+          width: 10,
+          height: 10,
+          background: TERRACOTTA,
+          borderRadius: "50%",
+          animation: "sparklePulse 1.4s ease-in-out infinite",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          top: 4,
+          right: "26%",
+          width: 8,
+          height: 8,
+          background: "oklch(82% 0.15 97)",
+          borderRadius: "50%",
+          animation: "sparklePulse 1.4s ease-in-out infinite 0.3s",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          bottom: 6,
+          left: "22%",
+          width: 7,
+          height: 7,
+          background: "oklch(76% 0.13 140)",
+          borderRadius: "50%",
+          animation: "sparklePulse 1.4s ease-in-out infinite 0.6s",
+        }}
+      />
+    </>
+  );
+}
 
 export function StatBar({
   label,
@@ -57,7 +108,7 @@ export function StatTile({
   return (
     <div
       style={{
-        background: "oklch(94% 0.03 80)",
+        background: "oklch(94% 0.035 230)",
         borderRadius: 20,
         padding: 18,
         textAlign: "center",
@@ -143,8 +194,8 @@ export function DebugButton({
         padding: "10px 14px",
         border: "none",
         borderRadius: 12,
-        background: danger ? "oklch(87% 0.09 20)" : "oklch(91% 0.03 88)",
-        color: danger ? "oklch(34% 0.1 20)" : INK,
+        background: danger ? "oklch(87% 0.11 350)" : "oklch(91% 0.035 97)",
+        color: danger ? "oklch(34% 0.13 350)" : INK,
         fontWeight: 700,
         fontSize: 13,
         textAlign: "left",

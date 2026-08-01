@@ -70,12 +70,13 @@ export function DebugPanel({
           borderRadius: "50%",
           border: `2px solid ${CARD_LINE}`,
           background: CARD_BG,
-          fontSize: 18,
+          fontSize: 10,
+          fontWeight: 800,
           cursor: "pointer",
-          boxShadow: "0 4px 12px oklch(35% 0.05 60 / 0.2)",
+          boxShadow: "0 4px 12px oklch(35% 0.06 260 / 0.2)",
         }}
       >
-        🛠
+        DBG
       </button>
 
       {isOpen && (
@@ -85,7 +86,7 @@ export function DebugPanel({
             position: "fixed",
             inset: 0,
             zIndex: 60,
-            background: "oklch(20% 0.02 255 / 0.35)",
+            background: "oklch(20% 0.05 260 / 0.35)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -109,7 +110,7 @@ export function DebugPanel({
                 marginBottom: 4,
               }}
             >
-              🛠 Debug tools
+              Debug tools
             </div>
             <div
               style={{
@@ -119,7 +120,7 @@ export function DebugPanel({
               }}
             >
               growth {pet.growthPoints.toFixed(2)} · {pet.stage} · health{" "}
-              {pet.health}% · streak {pet.streak}d
+              {pet.health}%
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <DebugButton
@@ -160,7 +161,7 @@ export function DebugPanel({
                 marginTop: 14,
                 width: "100%",
                 border: "none",
-                background: "oklch(91% 0.02 80)",
+                background: "oklch(91% 0.03 230)",
                 color: INK,
                 fontWeight: 800,
                 fontSize: 13,
