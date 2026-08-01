@@ -3,8 +3,8 @@
 ## Pitch
 
 Spaced repetition works, but nobody sticks with it — because the cost of
-skipping a day is invisible. We made the cost visible: a creature that
-depends on you learning your material to survive until your deadline. Same
+skipping a day is invisible. We made the cost visible: a creature that lives
+or dies by whether you're actually keeping up with your reviews. Same
 neuroscience that makes people doomscroll — immediate feedback, a living
 thing to check on — pointed at your flashcards instead of your feed.
 
@@ -42,25 +42,36 @@ features get built:
   why plant/pet-care apps for medication adherence and habit tracking work).
   We're not asking "did you study," we're asking "did you take care of
   something."
-- **Deadline-bound survival, not infinite streak.** Duolingo's streak model
-  is actually a weakness — infinite maintenance leads to streak-anxiety and
-  eventual abandonment. This app should have a goal date (exam, deadline),
-  so the stakes have a natural climax instead of guilt forever. This is not
-  yet reflected in the data model — see open questions below.
+- **Bounded survival, not infinite streak.** Duolingo's streak model is
+  actually a weakness — infinite maintenance leads to streak-anxiety and
+  eventual abandonment. What got built instead of a calendar deadline: pet
+  growth is paced by aggregate review consistency (see Core loop), and
+  every pet's arc ends — in graduation or in death — immediately followed
+  by a new one. That end-and-restart rhythm gives the stakes a climax
+  without needing a user-set date. Whether an *optional* deadline should
+  still sit on top of this pace is open — see open questions below.
 
 ## Core loop
 
-The pet's stats are driven by SRS mechanics, not by "studying in general":
+The pet has two distinct axes, both driven by SRS data rather than
+"studying in general":
 
-- **Reviews come due** on an SRS schedule per card (e.g. SM-2/Anki-style
-  intervals).
-- **On-time, accurate reviews** raise the pet's stats (happiness, energy,
-  health — exact stat set TBD).
-- **Overdue cards** cause stats to decay over time. A pile of overdue reviews
-  should visibly stress the pet (mood drop, "hungry"/"neglected" states),
-  not just sit as a number in a queue.
-- **Streaks and accuracy** are the main levers for growth/evolution, mirroring
-  how SRS itself rewards consistency over cramming.
+- **Health** (0-100) — computed from overdue card count/age, recent
+  accuracy, and streak length. On-time, accurate reviews raise it; overdue
+  cards decay it over time. This is the moment-to-moment "is my review
+  queue healthy" readout.
+- **Growth/lifecycle** — the pet ages through stages (egg → child → teen →
+  adult) based on aggregate review pace: cards contribute more growth the
+  longer their SM-2 interval has stretched, so consistently-recalled cards
+  age the pet faster than crammed ones. Reaching adulthood **graduates**
+  the pet — it retires into the village (see Homepage below) and a new egg
+  begins. If health stays at zero past a grace window, the pet instead
+  **dies** — also retiring it and starting a new egg.
+
+These are deliberately separate: a pet can be young-but-healthy, or
+old-and-declining. Reviews come due on an SRS schedule per card (SM-2-style
+intervals); accuracy and consistency are what move a pet toward graduation,
+while overdue reviews are what put it at risk of dying.
 
 The intent is that the pet becomes an emotionally legible proxy for "is my
 review queue healthy," so the incentive to open the app and clear reviews is
@@ -72,8 +83,9 @@ just "opened app = pet fed," this is a streak counter with cuter art — the
 differentiator only holds if survival is tied to actual retention
 performance (cards being forgotten should visibly hurt the pet more than
 cards being known). `architecture.md`'s pet state engine (accuracy +
-overdue-age as inputs, not just a login check) is what keeps this honest;
-any future change to that formula should be checked against this bar.
+overdue-age driving health, interval-maturity driving growth — not just a
+login check) is what keeps this honest; any future change to either formula
+should be checked against this bar.
 
 ## Why stats-derived-from-SRS (vs. a reward-layer pet)
 
@@ -83,16 +95,38 @@ health — you could neglect reviews for a week and still have a happy, well-fed
 pet from banked currency. Tying stats directly to SRS state keeps the pet
 honest: it reflects your actual review debt.
 
+## Homepage: the village
+
+The home screen is a village: one living, active pet front and center, with
+a growing background of small, clickable sprites for every pet that came
+before it — graduated pets shown normally, pets that died shown as a ghost.
+Clicking any of them opens that pet's history (name, species, how it ended).
+
+This is what "graduation" from Core loop actually looks like in the UI:
+success doesn't make the pet disappear, it becomes a permanent resident, so
+the village visibly accumulates your track record over time — a trophy case
+that fills in from real practice, not currency.
+
+**Not yet built:** the original idea for this screen was a Club
+Penguin-style map with fixed buildings/signs (a study hall, a place to
+manage decks, a stats view, settings) doubling as in-scene navigation. That
+hasn't been started — today, getting to Decks/Stats/etc. still goes through
+the existing tab bar, not the village scene itself. Worth deciding whether
+that's still wanted or whether the tab bar is fine long-term (see open
+questions).
+
 ## Visual style reference
 
-![Pet style reference](./assets/pet-style-reference.png)
+![Pet style reference](./assets/bunny.png)
 
 Target look for the pet: flat two-tone illustration (navy outline/fill +
 white body), thick uniform linework, minimal dot eyes with blush cheeks, a
 simple rounded blob body with small stubby limbs. No shading/gradients or
 fine detail — the style needs to read clearly at small sizes and hold up
-across the stat-driven mood variations (happy/neglected/etc.) without
-needing a full redraw per state.
+across mood/lifecycle variations without needing a full redraw per state.
+The `bunny`/`hopling`/`twirlet` species art (`docs/assets/`) hold to this
+style; the `egg` and `ghost` sprites are more utilitarian placeholders and
+don't fully match it yet.
 
 ## Platform
 
@@ -103,26 +137,20 @@ needing a full redraw per state.
 
 ## Open questions
 
-These are unresolved and worth revisiting as the roadmap firms up:
+These are unresolved and worth revisiting as the roadmap firms up. (Stat
+model, pet death/recovery, pet-per-deck-vs-shared, and SRS algorithm choice
+were open here previously — all now decided, see Core loop and
+`architecture.md`.)
 
-- What's the exact stat model for the pet (single "health" bar vs. multiple
-  stats like hunger/happiness/energy)?
-- What happens at the extremes — can the pet "die"/get sick, and is that
-  recoverable, or is it a soft-fail (stats just floor out and recover)?
-- Do users manage multiple decks with one shared pet, or a pet per deck?
 - Any social/multiplayer angle (comparing pets, sharing decks) or strictly
   single-player for v1?
-- SRS algorithm choice — roll our own SM-2-style scheduler or lean on an
-  existing library?
-- **Is the pet deadline-bound (tied to a user-set goal date, e.g. an exam)
-  or an infinite-maintenance pet?** The "why the tamagotchi framing works"
-  argument above depends on a deadline giving the stakes a natural climax
-  instead of open-ended streak-anxiety — but neither `vision.md`'s current
-  data model nor `architecture.md`'s `Pet`/`Card` schema has a goal date
-  anywhere. Needs a decision, and a schema change if we want it (likely a
-  `goalAt` on `Deck` or `Pet`).
-- **What happens after the deadline passes?** If the pet just stops
-  mattering once the exam is over, this is a single-use app per goal.
-  Options worth considering: the pet evolves/graduates on a successful
-  finish, gets "retired" into a collection, or the model resets cleanly for
-  the next goal/deck.
+- Do we want an optional user-set deadline layered on top of the
+  pace-based growth model (e.g. "reach adult by your exam date"), or is
+  organic pace the whole model? Not implemented today — growth is driven
+  purely by aggregate review-interval maturity, not a calendar date.
+- Should the village screen grow into the original fixed-building/sign
+  navigation idea (study hall, decks, stats, settings as in-scene links),
+  or is the existing tab bar the long-term nav?
+- Is a mid-decline warning/rescue mechanic wanted before a pet dies (it
+  currently has a silent grace window with no visible warning), or is a
+  quiet death intentional?
