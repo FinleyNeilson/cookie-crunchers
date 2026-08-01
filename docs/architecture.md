@@ -1,7 +1,7 @@
 # Architecture notes
 
-Status: stub. Stack is now decided (T3, see below); everything else here
-(SRS scheduling, pet state engine, data model) is still open.
+Status: stack, SRS scheduling, pet state engine, and the data model are now
+decided (see below). Pet visual states and hosting are still open.
 
 ## Constraints from the vision
 
@@ -11,22 +11,35 @@ Status: stub. Stack is now decided (T3, see below); everything else here
 - Web-first. Whatever we pick should not block a later mobile client reusing
   the backend/API.
 
-## Open decisions
+## Decisions
 
 ### SRS scheduling
 
-- Roll our own (SM-2-style) scheduler, or use an existing library?
-- Needs: per-card interval + ease/difficulty, due-date computation, and a
-  clean hook point for "this review just happened" so the pet engine can
-  react.
+**Decided: roll our own SM-2-style scheduler.**
+
+Per-card state lives on `Card` (see data model below): ease factor,
+repetition count, and interval, all updated after each review via the
+standard SM-2 formula. `submitReview` (tRPC) is the single hook point where a
+review event updates this state and appends a `ReviewLog` row.
 
 ### Pet state engine
 
-- Likely a function of: overdue card count/age, recent accuracy, streak
-  length. Needs to be recomputable (not just incrementally updated) so we can
-  change the formula later without corrupting history.
-- Decide whether pet stats are computed on-demand (derived at read time) or
-  materialized/cached and invalidated on review events.
+**Decided: single health stat, one pet per user, computed on-demand.**
+
+- One `Pet` per `User` (not per-deck) — it reflects the health of the user's
+  entire review queue across all decks.
+- A single `health` stat (0-100), not multiple stats — simplest for MVP, can
+  be split into multiple bars later (Phase 2) without a data model change
+  since it's derived, not stored.
+- `health` is **computed at read time**, not materialized/cached. Overdue
+  cards must cause decay purely from time passing (per vision.md), and
+  nothing would trigger that decay on a cache invalidated only by review
+  events. Computing on read also satisfies the "recomputable, not
+  incrementally updated" constraint above directly. Revisit if this becomes a
+  perf problem at scale.
+- Inputs: overdue card count/age, recent accuracy, streak length, all
+  aggregated from `ReviewLog` + `Card.dueAt`. Exact formula TBD when the pet
+  UI is built.
 
 ### Stack
 
