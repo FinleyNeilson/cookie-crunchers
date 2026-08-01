@@ -2,6 +2,8 @@ import "~/styles/globals.css";
 
 import { type Metadata } from "next";
 
+import { TRPCReactProvider } from "~/trpc/react";
+
 export const metadata: Metadata = {
   title: "Hatchly — Pet-Powered Flashcards",
   description: "Keep your study pet happy by clearing your flashcard reviews.",
@@ -20,7 +22,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <TRPCReactProvider>{children}</TRPCReactProvider>
+      </body>
     </html>
   );
 }
