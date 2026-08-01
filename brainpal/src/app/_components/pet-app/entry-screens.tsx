@@ -22,6 +22,8 @@ export function CenteredMessage({ children }: { children: React.ReactNode }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        flexDirection: "column",
+        gap: 12,
         fontFamily: "'Nunito', sans-serif",
         color: INK,
         background: PAPER,

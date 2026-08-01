@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 
+import { AIDeckMaker } from "~/app/_components/ai-deck-maker";
+import { LoadingSpinner } from "~/app/_components/loading-spinner";
+
 import {
   GRADE_TO_SM2,
   INK,
@@ -78,6 +81,7 @@ export function SignedInPetApp() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [managingDeckId, setManagingDeckId] = useState<string | null>(null);
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
+  const [isMakingWithAI, setIsMakingWithAI] = useState(false);
   const [newDeckName, setNewDeckName] = useState("");
   const [selectedRetiredPet, setSelectedRetiredPet] =
     useState<RetiredPet | null>(null);
@@ -248,7 +252,12 @@ export function SignedInPetApp() {
   }
 
   if (decksQuery.isPending || petQuery.isPending) {
-    return <CenteredMessage>Loading your pet…</CenteredMessage>;
+    return (
+      <CenteredMessage>
+        <LoadingSpinner size={38} label="Loading your pet" />
+        Loading your pet…
+      </CenteredMessage>
+    );
   }
   if (decksQuery.isError || petQuery.isError) {
     return (
@@ -344,6 +353,18 @@ export function SignedInPetApp() {
 
       <Toast message={toastMsg} />
 
+      {isMakingWithAI && (
+        <AIDeckMaker
+          onClose={() => setIsMakingWithAI(false)}
+          onCreated={async (deck) => {
+            setIsMakingWithAI(false);
+            await utils.deck.list.invalidate();
+            toast(`Created “${deck.name}” with ${deck.cardCount} cards!`);
+            manageDeck(deck.id);
+          }}
+        />
+      )}
+
       {selectedRetiredPet && (
         <RetiredPetPopup
           pet={selectedRetiredPet}
@@ -419,7 +440,7 @@ export function SignedInPetApp() {
             onStartReview={(deckId) => void startReview(deckId)}
             onPractice={(deckId) => void startReview(deckId, true)}
             onManageDeck={manageDeck}
-            onCreateWithAi={() => toast("Create with AI coming soon!")}
+            onCreateWithAi={() => setIsMakingWithAI(true)}
           />
         )}
 

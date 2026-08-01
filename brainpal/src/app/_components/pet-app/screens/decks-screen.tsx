@@ -13,6 +13,7 @@ import {
   TERRACOTTA,
 } from "~/app/_components/pet-app/constants";
 import { type DeckSummary } from "~/app/_components/pet-app/types";
+import { LoadingSpinner } from "~/app/_components/loading-spinner";
 
 // Fallback used only before the grid has measured itself (see
 // useGridPageSize below) — doesn't need to be exact.
@@ -273,7 +274,14 @@ export function DecksScreen({
               cursor: "pointer",
             }}
           >
-            Create
+            {isCreatingDeckPending ? (
+              <span className="loading-button-content">
+                <LoadingSpinner size={16} label="Creating deck" light />
+                Creating…
+              </span>
+            ) : (
+              "Create"
+            )}
           </button>
           <button
             onClick={() => {
