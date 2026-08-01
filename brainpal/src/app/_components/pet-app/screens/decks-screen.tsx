@@ -13,6 +13,7 @@ import {
   TERRACOTTA,
 } from "~/app/_components/pet-app/constants";
 import { type DeckSummary } from "~/app/_components/pet-app/types";
+import { LoadingSpinner } from "~/app/_components/loading-spinner";
 
 const PAGE_SIZE = 6;
 
@@ -219,7 +220,14 @@ export function DecksScreen({
               cursor: "pointer",
             }}
           >
-            Create
+            {isCreatingDeckPending ? (
+              <span className="loading-button-content">
+                <LoadingSpinner size={16} label="Creating deck" light />
+                Creating…
+              </span>
+            ) : (
+              "Create"
+            )}
           </button>
           <button
             onClick={() => {
