@@ -1,29 +1,44 @@
-# Create T3 App
+# Brainpal
 
-This is a [T3 Stack](https://create.t3.gg/) project bootstrapped with `create-t3-app`.
+A [T3 Stack](https://create.t3.gg/) app — Next.js, TypeScript, tRPC, Prisma (SQLite), NextAuth (Google OAuth). See [docs/architecture.md](../docs/architecture.md) and [docs/vision.md](../docs/vision.md) for the project background.
 
-## What's next? How do I make an app with this?
+## Getting started
 
-We try to keep this project as simple as possible, so you can start with just the scaffolding we set up for you, and add additional things later when they become necessary.
+1. Install dependencies:
 
-If you are not familiar with the different technologies used in this project, please refer to the respective docs. If you still are in the wind, please join our [Discord](https://t3.gg/discord) and ask for help.
+   ```
+   pnpm install
+   ```
 
-- [Next.js](https://nextjs.org)
-- [NextAuth.js](https://next-auth.js.org)
-- [Prisma](https://prisma.io)
-- [Drizzle](https://orm.drizzle.team)
-- [Tailwind CSS](https://tailwindcss.com)
-- [tRPC](https://trpc.io)
+2. If pnpm printed a warning about "Ignored build scripts", approve them — this project needs `better-sqlite3`'s native build and Prisma's postinstall to actually run:
 
-## Learn More
+   ```
+   pnpm approve-builds --all
+   ```
 
-To learn more about the [T3 Stack](https://create.t3.gg/), take a look at the following resources:
+3. Copy `.env.example` to `.env` and fill in the values. Ask a teammate for `AUTH_SECRET`, `AUTH_GOOGLE_ID`, and `AUTH_GOOGLE_SECRET` (these are shared dev credentials — don't post them anywhere public).
 
-- [Documentation](https://create.t3.gg/)
-- [Learn the T3 Stack](https://create.t3.gg/en/faq#what-learning-resources-are-currently-available) — Check out these awesome tutorials
+4. Create your local database (everyone has their own SQLite file — nothing here is shared):
 
-You can check out the [create-t3-app GitHub repository](https://github.com/t3-oss/create-t3-app) — your feedback and contributions are welcome!
+   ```
+   pnpm prisma migrate deploy
+   ```
 
-## How do I deploy this?
+5. Run the dev server:
 
-Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify) and [Docker](https://create.t3.gg/en/deployment/docker) for more information.
+   ```
+   pnpm dev
+   ```
+
+   It must run on **port 3000** — the Google OAuth client's only authorized redirect URI is `http://localhost:3000/api/auth/callback/google`. If something else is already using port 3000, stop that first rather than letting Next fall back to another port, or Google sign-in will fail.
+
+## Troubleshooting
+
+**"Server error" right after signing in with Google** — almost always one of:
+
+- Step 2 (`pnpm approve-builds --all`) or step 4 (`pnpm prisma migrate deploy`) above was skipped, so the Prisma client can't actually read/write your local database when NextAuth tries to create your user on first sign-in.
+- The dev server isn't running on port 3000 (see step 5) — Google rejects the redirect before it ever reaches the app.
+
+## Deploying
+
+Follow the T3 deployment guides for [Vercel](https://create.t3.gg/en/deployment/vercel), [Netlify](https://create.t3.gg/en/deployment/netlify), or [Docker](https://create.t3.gg/en/deployment/docker) — not yet decided for this project (see [docs/architecture.md](../docs/architecture.md)).
