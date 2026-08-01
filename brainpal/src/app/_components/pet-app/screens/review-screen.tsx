@@ -1,9 +1,8 @@
-import {
-  CARD_BG,
-  CARD_LINE,
-  INK,
-  TERRACOTTA,
-} from "~/app/_components/pet-app/constants";
+"use client";
+
+import { useEffect, useState } from "react";
+
+import { INK, TERRACOTTA } from "~/app/_components/pet-app/constants";
 import { PetPortrait } from "~/app/_components/pet-app/pet-visuals";
 import {
   type Grade,
@@ -35,6 +34,26 @@ export function ReviewScreen({
   onBack: () => void;
 }) {
   const currentCard = reviewCards[reviewIndex];
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const isQuiz = currentCard?.type === "quiz";
+  const quizOptions =
+    isQuiz && currentCard.optionsJson
+      ? (JSON.parse(currentCard.optionsJson) as string[])
+      : [];
+  const quizAnswered = selectedOption !== null;
+  const quizCorrect =
+    quizAnswered && selectedOption === currentCard?.correctIndex;
+
+  useEffect(() => {
+    setSelectedOption(null);
+  }, [currentCard?.id]);
+
+  function submitGrade(quality: Grade) {
+    if (isSubmittingReview) return;
+    setFlipped(false);
+    setSelectedOption(null);
+    onGrade(quality);
+  }
 
   return (
     <div style={{ maxWidth: 560, margin: "0 auto" }}>
@@ -98,61 +117,100 @@ export function ReviewScreen({
         </div>
       </div>
 
-      <div
-        onClick={() => setFlipped((f) => !f)}
-        style={{
-          marginTop: 18,
-          minHeight: 280,
-          background: CARD_BG,
-          borderRadius: 28,
-          padding: "32px 28px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          textAlign: "center",
-          border: `2px solid ${CARD_LINE}`,
-          boxShadow: "0 12px 30px oklch(35% 0.05 60 / 0.12)",
-          cursor: "pointer",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 800,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            color: "oklch(48% 0.04 255 / 0.5)",
-            marginBottom: 16,
-          }}
-        >
-          {flipped ? "Answer" : "Question"}
-        </div>
-        <div
-          style={{
-            fontFamily: "'Baloo 2', sans-serif",
-            fontWeight: 700,
-            fontSize: 22,
-            lineHeight: 1.4,
-          }}
-        >
-          {currentCard ? (flipped ? currentCard.back : currentCard.front) : ""}
-        </div>
-        {!flipped && (
-          <div
-            style={{
-              marginTop: 20,
-              fontSize: 13,
-              fontWeight: 700,
-              color: "oklch(48% 0.04 255 / 0.4)",
-            }}
-          >
-            Click to reveal answer
+      {isQuiz ? (
+        <div className="quiz-review-card">
+          <div className="study-side-label">Multiple choice</div>
+          <div className="study-card-copy">{currentCard.front}</div>
+          <div className="quiz-options">
+            {quizOptions.map((option, index) => {
+              const isSelected = selectedOption === index;
+              const isCorrect =
+                quizAnswered && index === currentCard.correctIndex;
+              const isWrong = quizAnswered && isSelected && !isCorrect;
+              return (
+                <button
+                  key={`${index}-${option}`}
+                  type="button"
+                  disabled={quizAnswered}
+                  onClick={() => setSelectedOption(index)}
+                  className={
+                    isCorrect
+                      ? "quiz-option quiz-option-correct"
+                      : isWrong
+                        ? "quiz-option quiz-option-wrong"
+                        : "quiz-option"
+                  }
+                >
+                  <span className="quiz-option-letter">
+                    {String.fromCharCode(65 + index)}
+                  </span>
+                  <span>{option}</span>
+                  {isCorrect && <span className="quiz-option-mark">✓</span>}
+                  {isWrong && <span className="quiz-option-mark">×</span>}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </div>
+          {quizAnswered && (
+            <div
+              className={`quiz-feedback ${quizCorrect ? "quiz-feedback-correct" : "quiz-feedback-wrong"}`}
+            >
+              <strong>{quizCorrect ? "Correct!" : "Not quite."}</strong>
+              {!quizCorrect && <span>The answer is {currentCard.back}.</span>}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flashcard-scene">
+          <div
+            className={
+              flipped ? "flashcard-flipper is-flipped" : "flashcard-flipper"
+            }
+          >
+            <button
+              type="button"
+              aria-label="Reveal answer"
+              onClick={() => setFlipped(true)}
+              className="flashcard-face flashcard-front"
+            >
+              <span className="study-side-label">Question</span>
+              <span className="study-card-copy">
+                {currentCard?.front ?? ""}
+              </span>
+              <span className="flashcard-hint">
+                Click the card to reveal the answer ↻
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label="Show question"
+              onClick={() => setFlipped(false)}
+              className="flashcard-face flashcard-back"
+            >
+              <span className="answer-side-label">Answer</span>
+              <span className="study-card-copy answer-copy">
+                {currentCard?.back ?? ""}
+              </span>
+              <span className="flashcard-hint">
+                Click to see the question again ↻
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
-      {flipped && (
+      {isQuiz && quizAnswered && (
+        <button
+          type="button"
+          disabled={isSubmittingReview}
+          onClick={() => submitGrade(quizCorrect ? "good" : "again")}
+          className="quiz-continue-button"
+        >
+          Continue
+        </button>
+      )}
+
+      {!isQuiz && flipped && (
         <div
           style={{
             display: "grid",
@@ -165,7 +223,7 @@ export function ReviewScreen({
             disabled={isSubmittingReview}
             onClick={(e) => {
               e.stopPropagation();
-              onGrade("again");
+              submitGrade("again");
             }}
             style={{
               padding: 16,
@@ -185,7 +243,7 @@ export function ReviewScreen({
             disabled={isSubmittingReview}
             onClick={(e) => {
               e.stopPropagation();
-              onGrade("hard");
+              submitGrade("hard");
             }}
             style={{
               padding: 16,
@@ -205,7 +263,7 @@ export function ReviewScreen({
             disabled={isSubmittingReview}
             onClick={(e) => {
               e.stopPropagation();
-              onGrade("good");
+              submitGrade("good");
             }}
             style={{
               padding: 16,
@@ -225,7 +283,7 @@ export function ReviewScreen({
             disabled={isSubmittingReview}
             onClick={(e) => {
               e.stopPropagation();
-              onGrade("easy");
+              submitGrade("easy");
             }}
             style={{
               padding: 16,

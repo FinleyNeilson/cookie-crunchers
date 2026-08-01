@@ -4,6 +4,31 @@ import { z } from "zod";
 
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 
+const cardTypeSchema = z.enum(["flashcard", "quiz"]);
+const quizOptionsSchema = z.array(z.string().min(1).max(500)).min(2).max(4);
+
+function validateQuiz(input: {
+  type: "flashcard" | "quiz";
+  options?: string[];
+  correctIndex?: number;
+}) {
+  if (input.type === "flashcard") {
+    return { type: input.type, optionsJson: null, correctIndex: null };
+  }
+  const options = quizOptionsSchema.parse(input.options);
+  const correctIndex = z
+    .number()
+    .int()
+    .min(0)
+    .max(options.length - 1)
+    .parse(input.correctIndex);
+  return {
+    type: input.type,
+    optionsJson: JSON.stringify(options),
+    correctIndex,
+  };
+}
+
 async function requireOwnedDeck(
   db: PrismaClient,
   userId: string,
@@ -44,12 +69,21 @@ export const cardRouter = createTRPCRouter({
         deckId: z.string(),
         front: z.string().min(1).max(2000),
         back: z.string().min(1).max(2000),
+        type: cardTypeSchema.default("flashcard"),
+        options: quizOptionsSchema.optional(),
+        correctIndex: z.number().int().min(0).max(3).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       await requireOwnedDeck(ctx.db, ctx.session.user.id, input.deckId);
 
-      return ctx.db.card.create({ data: input });
+      const { options, correctIndex, ...card } = input;
+      return ctx.db.card.create({
+        data: {
+          ...card,
+          ...validateQuiz({ type: card.type, options, correctIndex }),
+        },
+      });
     }),
 
   update: protectedProcedure
@@ -58,13 +92,26 @@ export const cardRouter = createTRPCRouter({
         id: z.string(),
         front: z.string().min(1).max(2000).optional(),
         back: z.string().min(1).max(2000).optional(),
+        type: cardTypeSchema.optional(),
+        options: quizOptionsSchema.optional(),
+        correctIndex: z.number().int().min(0).max(3).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input;
-      await requireOwnedCard(ctx.db, ctx.session.user.id, id);
+      const { id, options, correctIndex, ...data } = input;
+      const existing = await requireOwnedCard(ctx.db, ctx.session.user.id, id);
+      const type = data.type ?? (existing.type as "flashcard" | "quiz");
+      const quizData =
+        data.type !== undefined ||
+        options !== undefined ||
+        correctIndex !== undefined
+          ? validateQuiz({ type, options, correctIndex })
+          : {};
 
-      return ctx.db.card.update({ where: { id }, data });
+      return ctx.db.card.update({
+        where: { id },
+        data: { ...data, ...quizData },
+      });
     }),
 
   delete: protectedProcedure

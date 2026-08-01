@@ -17,10 +17,27 @@ const generatedDeckSchema = z.object({
   description: z.string().max(500),
   cards: z
     .array(
-      z.object({
-        front: z.string().min(1).max(2000),
-        back: z.string().min(1).max(2000),
-      }),
+      z
+        .object({
+          front: z.string().min(1).max(2000),
+          back: z.string().min(1).max(2000),
+          type: z.enum(["flashcard", "quiz"]),
+          options: z.array(z.string().min(1).max(500)).min(2).max(4).nullable(),
+          correctIndex: z.number().int().min(0).max(3).nullable(),
+        })
+        .superRefine((card, ctx) => {
+          if (
+            card.type === "quiz" &&
+            (!card.options ||
+              card.correctIndex === null ||
+              card.correctIndex >= card.options.length)
+          ) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Quiz cards require valid options and a correct answer.",
+            });
+          }
+        }),
     )
     .min(1)
     .max(60),
@@ -84,6 +101,13 @@ export async function POST(request: Request) {
       ? instructionsValue.trim().slice(0, 1000)
       : "";
   const requestedCount = Number(form.get("cardCount") ?? 20);
+  const contentTypeValue = form.get("contentType");
+  const contentType =
+    contentTypeValue === "flashcards" ||
+    contentTypeValue === "quizzes" ||
+    contentTypeValue === "mixed"
+      ? contentTypeValue
+      : "mixed";
   const cardCount = Number.isFinite(requestedCount)
     ? Math.min(60, Math.max(5, Math.round(requestedCount)))
     : 20;
@@ -114,8 +138,8 @@ export async function POST(request: Request) {
     }
 
     const prompt = [
-      `Create a study flashcard deck containing about ${cardCount} cards from the attached course material.`,
-      "Cover the most important concepts across all files. Use concise, unambiguous questions and answers. Prefer active recall over trivia, avoid duplicate cards, and make each card understandable without seeing the source.",
+      `Create a study deck containing about ${cardCount} items from the attached course material. Use ${contentType === "mixed" ? "a useful mix of flashcards and multiple-choice quizzes" : contentType}.`,
+      "Cover the most important concepts across all files. Prefer active recall over trivia, avoid duplicates, and make every item understandable without seeing the source. Quiz items must have 2-4 plausible answer choices, exactly one correct choice, and back must contain the correct answer text. Flashcards must use null for options and correctIndex.",
       instructions ? `Learner instructions: ${instructions}` : "",
     ]
       .filter(Boolean)
@@ -159,10 +183,34 @@ export async function POST(request: Request) {
                     items: {
                       type: "object",
                       additionalProperties: false,
-                      required: ["front", "back"],
+                      required: [
+                        "front",
+                        "back",
+                        "type",
+                        "options",
+                        "correctIndex",
+                      ],
                       properties: {
                         front: { type: "string" },
                         back: { type: "string" },
+                        type: { type: "string", enum: ["flashcard", "quiz"] },
+                        options: {
+                          anyOf: [
+                            {
+                              type: "array",
+                              minItems: 2,
+                              maxItems: 4,
+                              items: { type: "string" },
+                            },
+                            { type: "null" },
+                          ],
+                        },
+                        correctIndex: {
+                          anyOf: [
+                            { type: "integer", minimum: 0, maximum: 3 },
+                            { type: "null" },
+                          ],
+                        },
                       },
                     },
                   },
@@ -183,7 +231,16 @@ export async function POST(request: Request) {
         userId: session.user.id,
         name: generated.name,
         description: generated.description,
-        cards: { create: generated.cards },
+        cards: {
+          create: generated.cards.map((card) => ({
+            front: card.front,
+            back: card.back,
+            type: card.type,
+            optionsJson:
+              card.type === "quiz" ? JSON.stringify(card.options) : null,
+            correctIndex: card.type === "quiz" ? card.correctIndex : null,
+          })),
+        },
       },
       include: { _count: { select: { cards: true } } },
     });
