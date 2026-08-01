@@ -1,7 +1,7 @@
 # Architecture notes
 
-Status: stub. No stack decisions are final — this doc exists to collect
-options and constraints as we make them, not to declare a design.
+Status: stub. Stack is now decided (T3, see below); everything else here
+(SRS scheduling, pet state engine, data model) is still open.
 
 ## Constraints from the vision
 
@@ -30,15 +30,26 @@ options and constraints as we make them, not to declare a design.
 
 ### Stack
 
-- Frontend framework: TBD (React/Vue/Svelte all reasonable; no constraint
-  yet).
-- Backend: TBD — depends on whether MVP needs accounts/multi-device sync or
-  can start local-only (e.g. IndexedDB/localStorage) and add a backend later.
-- Hosting: TBD.
+**Decided: [T3 stack](https://create.t3.gg/).**
+
+- **Next.js** — frontend + backend in one app (satisfies the web-first
+  constraint; also the most reusable base if we ever want a React Native
+  mobile client later, per the vision doc's mobile-stretch goal).
+- **TypeScript** — end-to-end types, including through tRPC into the pet
+  engine and SRS scheduler.
+- **tRPC** — typed API layer between client and server; good fit for the
+  review-event → pet-state-recompute flow since the client can call a single
+  typed `submitReview` procedure.
+- **Prisma** — ORM, maps directly onto the data model sketch below.
+- **NextAuth (Auth.js)** — accounts, since `User`/`Deck` ownership implies we
+  need auth from the start rather than deferring to local-only storage.
+- **Tailwind CSS** — styling, including whatever the pet's visual states
+  turn out to be (sprite/CSS-driven, TBD).
+- Hosting: TBD (Vercel is the natural default for a T3 app but not decided).
 
 ### Data model (sketch, not final)
 
-- `User` — if accounts exist in MVP
+- `User` — via NextAuth
 - `Deck` — belongs to a user
 - `Card` — belongs to a deck; front/back content
 - `ReviewLog` — one row per review: card, timestamp, grade/result, resulting

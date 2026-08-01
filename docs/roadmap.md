@@ -5,7 +5,9 @@ sequencing — expect it to shift once we start building.
 
 ## Phase 0 — Foundations
 
-- [ ] Pick stack for the web app (framework, language, hosting)
+- [x] Pick stack for the web app — [T3 stack](https://create.t3.gg/)
+      (Next.js, TypeScript, tRPC, Prisma, NextAuth, Tailwind); see
+      [architecture.md](./architecture.md)
 - [ ] Pick/design the SRS algorithm (see [architecture.md](./architecture.md))
 - [ ] Decide the pet stat model (see open questions in
       [vision.md](./vision.md))
@@ -22,7 +24,8 @@ watch a pet react to that review history.
 - [ ] Pet state engine: compute pet stats from review history/overdue state
 - [ ] Pet UI: at minimum a visual state (sprite/mood) that reflects current
       stats
-- [ ] Persistence (accounts or local-only for MVP — TBD)
+- [ ] Persistence via Prisma + NextAuth accounts (local-only storage is off
+      the table now that the stack is decided)
 
 ## Phase 2 — Depth
 
