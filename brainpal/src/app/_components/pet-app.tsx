@@ -4,6 +4,8 @@ import { signIn, signOut, useSession } from "next-auth/react";
 import { useState } from "react";
 
 import { api, type RouterOutputs } from "~/trpc/react";
+import { AIDeckMaker } from "./ai-deck-maker";
+import { LoadingSpinner } from "./loading-spinner";
 
 // Ported from the "Hatchly" design prototype (Pet-Powered Flashcard App.zip),
 // restyled to the cozy sticker look in docs/assets/pet-style-reference.png
@@ -73,7 +75,13 @@ const DECK_ACCENT_PALETTE: { bg: string; color: string }[] = [
 export function PetApp() {
   const { data: session, status } = useSession();
 
-  if (status === "loading") return <CenteredMessage>Loading…</CenteredMessage>;
+  if (status === "loading")
+    return (
+      <CenteredMessage>
+        <LoadingSpinner size={34} label="Loading your account" />
+        Loading…
+      </CenteredMessage>
+    );
   if (!session) return <SignInScreen />;
   return <SignedInPetApp />;
 }
@@ -86,6 +94,8 @@ function CenteredMessage({ children }: { children: React.ReactNode }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        flexDirection: "column",
+        gap: 12,
         fontFamily: "'Nunito', sans-serif",
         color: INK,
         background: PAPER,
@@ -162,6 +172,7 @@ function SignedInPetApp() {
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [managingDeckId, setManagingDeckId] = useState<string | null>(null);
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
+  const [isMakingWithAI, setIsMakingWithAI] = useState(false);
   const [newDeckName, setNewDeckName] = useState("");
 
   function toast(msg: string) {
@@ -253,7 +264,12 @@ function SignedInPetApp() {
   }
 
   if (decksQuery.isPending || petQuery.isPending) {
-    return <CenteredMessage>Loading your pet…</CenteredMessage>;
+    return (
+      <CenteredMessage>
+        <LoadingSpinner size={38} label="Loading your pet" />
+        Loading your pet…
+      </CenteredMessage>
+    );
   }
   if (decksQuery.isError || petQuery.isError) {
     return (
@@ -731,7 +747,7 @@ function SignedInPetApp() {
                   + New deck
                 </button>
                 <button
-                  onClick={() => toast("Slide upload coming soon!")}
+                  onClick={() => setIsMakingWithAI(true)}
                   style={{
                     padding: "12px 20px",
                     border: "none",
@@ -743,10 +759,22 @@ function SignedInPetApp() {
                     cursor: "pointer",
                   }}
                 >
-                  ↑ Upload slides
+                  ✦ Make with AI
                 </button>
               </div>
             </div>
+
+            {isMakingWithAI && (
+              <AIDeckMaker
+                onClose={() => setIsMakingWithAI(false)}
+                onCreated={async (deck) => {
+                  setIsMakingWithAI(false);
+                  await utils.deck.list.invalidate();
+                  toast(`Created “${deck.name}” with ${deck.cardCount} cards!`);
+                  manageDeck(deck.id);
+                }}
+              />
+            )}
 
             {isCreatingDeck && (
               <div
@@ -791,7 +819,14 @@ function SignedInPetApp() {
                     cursor: "pointer",
                   }}
                 >
-                  Create
+                  {createDeck.isPending ? (
+                    <span className="loading-button-content">
+                      <LoadingSpinner size={16} label="Creating deck" light />
+                      Creating…
+                    </span>
+                  ) : (
+                    "Create"
+                  )}
                 </button>
                 <button
                   onClick={() => {

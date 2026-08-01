@@ -23,7 +23,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <TRPCReactProvider>
           <SessionProvider>{children}</SessionProvider>
         </TRPCReactProvider>
