@@ -5,7 +5,6 @@ import { type PrismaClient } from "@prisma/client";
 // events. The exact weights below are a first pass and are meant to be
 // tuned once the pet UI exists to see how it feels.
 
-const MAX_OVERDUE_PENALTY = 60;
 const ACCURACY_WINDOW = 20;
 const ACCURACY_LOOKBACK_DAYS = 90;
 
@@ -28,10 +27,11 @@ export function computeHealth(inputs: PetHealthInputs): number {
 
   let health = 100;
 
-  health -= Math.min(
-    MAX_OVERDUE_PENALTY,
-    overdueCount * 4 + overdueDaysSum * 1.5,
-  );
+  // Uncapped — a big enough overdue backlog alone should be able to bring
+  // this all the way to 0 (and, past the death-eligibility grace window,
+  // actually kill the pet), not just plateau partway. The final clamp
+  // below is the only bound this needs.
+  health -= overdueCount * 4 + overdueDaysSum * 1.5;
 
   if (recentAccuracy !== null && recentAccuracy < 0.7) {
     health -= (0.7 - recentAccuracy) * 100;
