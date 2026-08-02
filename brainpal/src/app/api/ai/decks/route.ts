@@ -60,6 +60,41 @@ function getOutputText(response: OpenAIResponse) {
     .join("");
 }
 
+function fillMissingQuizAnswers(value: unknown): unknown {
+  if (!value || typeof value !== "object" || !("cards" in value)) return value;
+  const deck = value as Record<string, unknown>;
+  if (!Array.isArray(deck.cards)) return value;
+  const cards = deck.cards as unknown[];
+
+  return {
+    ...deck,
+    cards: cards.map((item: unknown): unknown => {
+      if (!item || typeof item !== "object") return item;
+      const card = item as Record<string, unknown>;
+      const options = Array.isArray(card.options)
+        ? (card.options as unknown[])
+        : null;
+      const correctIndex = card.correctIndex;
+      const correctOption =
+        options &&
+        typeof correctIndex === "number" &&
+        Number.isInteger(correctIndex)
+          ? options[correctIndex]
+          : null;
+      if (
+        card.type === "quiz" &&
+        typeof card.back === "string" &&
+        !card.back.trim() &&
+        typeof correctOption === "string" &&
+        correctOption.trim()
+      ) {
+        return { ...card, back: correctOption.trim() };
+      }
+      return item;
+    }),
+  };
+}
+
 function error(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
@@ -147,6 +182,7 @@ export async function POST(request: Request) {
     const prompt = [
       `Create a study deck containing exactly ${cardCount} items from the attached course material.`,
       studyItemInstructions,
+      "Every card must have non-empty front and back text. For a quiz, back must exactly match the correct option.",
       "Focus only on the highest-value concepts needed to understand and remember the material.",
       "Requirements: Each flashcard tests exactly ONE fact or concept. Questions should be clear, specific, and unambiguous. Answers must be as short as possible while remaining correct. Prefer answers that are 1–10 words (avoid full sentences unless necessary). Do not combine multiple facts into one card. Use active recall questions rather than recognition or trivia. Avoid duplicate or overlapping cards. Each card must make sense without referring back to the source material. If a concept is complex, split it into multiple simple flashcards instead of one large card. Prefer definitions, key relationships, causes, effects, formulas, and essential facts. Do not include unnecessary explanations or examples in the answer. A good flashcard: Q: What is the powerhouse of the cell? A: Mitochondrion. Bad flashcard: Q: Explain everything about mitochondria. A: A long paragraph...",
       instructions ? `Learner instructions: ${instructions}` : "",
@@ -183,8 +219,8 @@ export async function POST(request: Request) {
                 additionalProperties: false,
                 required: ["name", "description", "cards"],
                 properties: {
-                  name: { type: "string" },
-                  description: { type: "string" },
+                  name: { type: "string", minLength: 1, maxLength: 100 },
+                  description: { type: "string", maxLength: 500 },
                   cards: {
                     type: "array",
                     minItems: 1,
@@ -200,8 +236,16 @@ export async function POST(request: Request) {
                         "correctIndex",
                       ],
                       properties: {
-                        front: { type: "string" },
-                        back: { type: "string" },
+                        front: {
+                          type: "string",
+                          minLength: 1,
+                          maxLength: 2000,
+                        },
+                        back: {
+                          type: "string",
+                          minLength: 1,
+                          maxLength: 2000,
+                        },
                         type: { type: "string", enum: ["flashcard", "quiz"] },
                         options: {
                           anyOf: [
@@ -209,7 +253,11 @@ export async function POST(request: Request) {
                               type: "array",
                               minItems: 2,
                               maxItems: 4,
-                              items: { type: "string" },
+                              items: {
+                                type: "string",
+                                minLength: 1,
+                                maxLength: 500,
+                              },
                             },
                             { type: "null" },
                           ],
@@ -234,7 +282,9 @@ export async function POST(request: Request) {
 
     const outputText = getOutputText(aiResponse);
     if (!outputText) throw new Error("The AI returned an empty deck.");
-    const generated = generatedDeckSchema.parse(JSON.parse(outputText));
+    const generated = generatedDeckSchema.parse(
+      fillMissingQuizAnswers(JSON.parse(outputText)),
+    );
     const deck = await db.deck.create({
       data: {
         userId: session.user.id,
@@ -262,7 +312,13 @@ export async function POST(request: Request) {
   } catch (cause) {
     console.error("AI deck generation failed", cause);
     const message =
-      cause instanceof Error ? cause.message : "Could not generate a deck.";
+      cause instanceof z.ZodError
+        ? "The AI produced an incomplete deck. Please generate it again."
+        : cause instanceof SyntaxError
+          ? "The AI returned an unreadable deck. Please generate it again."
+          : cause instanceof Error
+            ? cause.message
+            : "Could not generate a deck.";
     return error(message, 502);
   } finally {
     await Promise.allSettled(

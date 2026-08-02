@@ -103,7 +103,7 @@ export function DecksScreen({
   setIsCreatingDeck: React.Dispatch<React.SetStateAction<boolean>>;
   newDeckName: string;
   setNewDeckName: React.Dispatch<React.SetStateAction<string>>;
-  onCreateDeck: () => void;
+  onCreateDeck: () => Promise<void>;
   isCreatingDeckPending: boolean;
   onStartReview: (deckId: string) => void;
   onPractice: (deckId: string) => void;
@@ -213,7 +213,7 @@ export function DecksScreen({
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <button
-            onClick={() => setIsCreatingDeck((v) => !v)}
+            onClick={() => setIsCreatingDeck(true)}
             style={{
               padding: "12px 20px",
               border: "none",
@@ -247,68 +247,135 @@ export function DecksScreen({
 
       {isCreatingDeck && (
         <div
-          style={{
-            display: "flex",
-            gap: 10,
-            marginTop: 18,
-            background: CARD_BG,
-            borderRadius: 18,
-            padding: 16,
-            border: `2px solid ${CARD_LINE}`,
-            flexShrink: 0,
-          }}
-        >
-          <input
-            autoFocus
-            value={newDeckName}
-            onChange={(e) => setNewDeckName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") onCreateDeck();
-            }}
-            placeholder="Deck name"
-            style={{ ...inputStyle, flex: 1 }}
-          />
-          <button
-            onClick={onCreateDeck}
-            disabled={!newDeckName.trim() || isCreatingDeckPending}
-            style={{
-              padding: "10px 18px",
-              border: "none",
-              borderRadius: 12,
-              background: TERRACOTTA,
-              color: "oklch(98% 0.01 90)",
-              fontWeight: 800,
-              fontSize: 14,
-              cursor: "pointer",
-            }}
-          >
-            {isCreatingDeckPending ? (
-              <span className="loading-button-content">
-                <LoadingSpinner size={16} label="Creating deck" light />
-                Creating…
-              </span>
-            ) : (
-              "Create"
-            )}
-          </button>
-          <button
-            onClick={() => {
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="new-deck-title"
+          className="ai-modal-backdrop"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !isCreatingDeckPending
+            ) {
               setIsCreatingDeck(false);
               setNewDeckName("");
-            }}
+            }
+          }}
+        >
+          <div
+            className="ai-modal-card"
             style={{
-              padding: "10px 18px",
-              border: "none",
-              borderRadius: 12,
-              background: "oklch(91% 0.03 230)",
-              color: INK,
-              fontWeight: 800,
-              fontSize: 14,
-              cursor: "pointer",
+              width: "min(460px, 100%)",
             }}
           >
-            Cancel
-          </button>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                gap: 18,
+              }}
+            >
+              <div>
+                <div id="new-deck-title" className="ai-modal-title">
+                  Create a new deck
+                </div>
+                <div className="ai-modal-subtitle">
+                  Give your deck a name. You’ll add and manage its cards next.
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Close"
+                className="ai-close"
+                disabled={isCreatingDeckPending}
+                onClick={() => {
+                  setIsCreatingDeck(false);
+                  setNewDeckName("");
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            <label
+              htmlFor="new-deck-name"
+              style={{
+                display: "block",
+                marginTop: 22,
+                fontSize: 13,
+                fontWeight: 800,
+              }}
+            >
+              Deck name
+              <input
+                id="new-deck-name"
+                autoFocus
+                maxLength={100}
+                value={newDeckName}
+                onChange={(e) => setNewDeckName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && newDeckName.trim()) {
+                    void onCreateDeck();
+                  }
+                }}
+                placeholder="e.g. Biology exam review"
+                style={{ ...inputStyle, width: "100%", marginTop: 6 }}
+              />
+            </label>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 10,
+                marginTop: 22,
+              }}
+            >
+              <button
+                type="button"
+                disabled={isCreatingDeckPending}
+                onClick={() => {
+                  setIsCreatingDeck(false);
+                  setNewDeckName("");
+                }}
+                style={{
+                  padding: "10px 18px",
+                  border: "none",
+                  borderRadius: 12,
+                  background: "oklch(91% 0.03 230)",
+                  color: INK,
+                  fontWeight: 800,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void onCreateDeck()}
+                disabled={!newDeckName.trim() || isCreatingDeckPending}
+                style={{
+                  padding: "10px 18px",
+                  border: "none",
+                  borderRadius: 12,
+                  background: TERRACOTTA,
+                  color: "oklch(98% 0.01 90)",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  cursor: "pointer",
+                }}
+              >
+                {isCreatingDeckPending ? (
+                  <span className="loading-button-content">
+                    <LoadingSpinner size={16} label="Creating deck" light />
+                    Creating…
+                  </span>
+                ) : (
+                  "Create and add cards"
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -585,8 +652,8 @@ function DeckCard({
           {deck.totalCards} cards · Level {deck.level}
         </span>
         <span style={{ color: "oklch(48% 0.04 255 / 0.6)" }}>
-          {deck.xpInLevel.toLocaleString()}/{deck.xpToNextLevel.toLocaleString()}{" "}
-          XP
+          {deck.xpInLevel.toLocaleString()}/
+          {deck.xpToNextLevel.toLocaleString()} XP
         </span>
       </div>
       <div
