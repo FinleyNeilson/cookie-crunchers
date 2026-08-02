@@ -261,10 +261,7 @@ export function AIDeckMaker({
           className="ai-generate"
         >
           {isGenerating ? (
-            <span className="loading-button-content">
-              <LoadingSpinner size={19} label="Generating deck" light />
-              Reading your files and making cards…
-            </span>
+            "Reading your files and making cards…"
           ) : (
             "Generate deck"
           )}

@@ -13,7 +13,7 @@ export function LoadingSpinner({
     <span
       role="status"
       aria-label={label}
-      className={`loading-spinner${light ? "loading-spinner-light" : ""}`}
+      className={`loading-spinner${light ? " loading-spinner-light" : ""}`}
       style={{ width: size, height: size, borderWidth: Math.max(2, size / 8) }}
     >
       <span className="loading-spinner-label">{label}</span>
