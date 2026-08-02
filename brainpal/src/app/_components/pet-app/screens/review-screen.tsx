@@ -105,7 +105,6 @@ export function ReviewScreen({
         style={{
           display: "flex",
           justifyContent: "center",
-          marginTop: 22,
         }}
       >
         <div style={{ width: 110, height: 110 }}>
