@@ -97,7 +97,7 @@ export function ReviewScreen({
             whiteSpace: "nowrap",
           }}
         >
-          {currentCard ? `${reviewIndex + 1} / ${reviewCards.length}` : ""}
+          {currentCard ? `${reviewIndex} / ${reviewCards.length}` : ""}
         </div>
       </div>
 
