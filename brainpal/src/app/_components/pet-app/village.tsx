@@ -43,7 +43,7 @@ export function RetiredPetPortrait({
 }
 
 // Ambient background sprite on the home/village scene — deterministically
-// scattered (stable per pet.id), small and muted so it reads as background
+// scattered (stable per pet.id), subtle enough to read as background
 // rather than competing with the current pet in the foreground.
 export function RetiredPetSprite({
   pet,
@@ -53,22 +53,19 @@ export function RetiredPetSprite({
   onClick: () => void;
 }) {
   const h = hashString(pet.id);
-  // Stay clear of the centered pet-portrait/name card entirely (left/right
-  // margins only, never the middle) rather than fighting it for stacking
-  // order — that keeps sprites a true background layer (zIndex: 1, behind
-  // the foreground) while still remaining clickable, since nothing else
-  // ever occupies the same pixels.
-  const onLeftSide = h % 2 === 0;
-  const leftPct = onLeftSide
-    ? 6 + (((h >> 4) % 1000) / 1000) * 20
-    : 74 + (((h >> 4) % 1000) / 1000) * 20;
-  // top, not bottom: the scene wrapper's total height includes the
-  // health/growth stats card below it (a normal-flow sibling with its own
-  // opaque background), so anchoring from the bottom put sprites entirely
-  // behind that card. Anchoring from the top instead lands them in the
-  // stable hero/pet-portrait region, independent of that card's height.
-  const topPx = 130 + (((h >> 10) % 1000) / 1000) * 260;
-  const size = 40 + (((h >> 20) % 1000) / 1000) * 16;
+  const isGhost = pet.retirementReason === "died";
+  // The foreground layers sit above sprites, allowing pets to be scattered
+  // across the whole illustrated hill without covering the active pet/card.
+  const horizontalOffset = ((h >> 4) % 1000) / 1000;
+  const leftPct = 4 + horizontalOffset * 92;
+  // Retired pets use the lower hill area, below the study card (which sits
+  // roughly in the 403-714px band, centered, atop this same container —
+  // see HomeScreen) so they don't spawn hidden underneath it. Ghosts may
+  // also drift into the sky, above the card.
+  const verticalOffset = ((h >> 10) % 1000) / 1000;
+  const topPx =
+    isGhost ? 80 + verticalOffset * 620 : 740 + verticalOffset * 140;
+  const size = 64 + (((h >> 20) % 1000) / 1000) * 24;
 
   return (
     <button
