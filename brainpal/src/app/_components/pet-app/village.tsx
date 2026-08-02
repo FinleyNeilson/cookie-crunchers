@@ -68,7 +68,7 @@ export function RetiredPetSprite({
 }) {
   const h = hashString(pet.id);
   const isGhost = pet.retirementReason === "died";
-  const size = 64 + ((h % 1000) / 1000) * 24;
+  const size = 100 + ((h % 1000) / 1000) * 30;
 
   // Nothing measured yet (pre-layout) — skip this frame rather than flash
   // a sprite in the wrong place.

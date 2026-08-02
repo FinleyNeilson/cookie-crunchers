@@ -13,8 +13,6 @@ import {
   Play,
   SkipBack,
   SkipForward,
-  Volume2,
-  VolumeX,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -73,7 +71,6 @@ const TRACKS: Track[] = [
 export function MusicPlayer() {
   const [isOpen, setIsOpen] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.32);
   const [selectedTrack, setSelectedTrack] = useState(0);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -147,7 +144,7 @@ export function MusicPlayer() {
       masterGainRef.current = gain;
     }
     masterGainRef.current.gain.setTargetAtTime(
-      isMuted ? 0 : volume,
+      volume,
       context.currentTime,
       0.04,
     );
@@ -169,27 +166,13 @@ export function MusicPlayer() {
     if (isPlaying) void startAudio(index);
   }
 
-  function toggleMute() {
-    const nextMuted = !isMuted;
-    setIsMuted(nextMuted);
-    const context = audioContextRef.current;
-    const master = masterGainRef.current;
-    if (context && master) {
-      master.gain.setTargetAtTime(
-        nextMuted ? 0 : volume,
-        context.currentTime,
-        0.04,
-      );
-    }
-  }
-
   useEffect(() => {
     const context = audioContextRef.current;
     const master = masterGainRef.current;
-    if (context && master && !isMuted) {
+    if (context && master) {
       master.gain.setTargetAtTime(volume, context.currentTime, 0.04);
     }
-  }, [volume, isMuted]);
+  }, [volume]);
 
   useEffect(
     () => () => {
@@ -258,17 +241,6 @@ export function MusicPlayer() {
             >
               <SkipForward aria-hidden="true" />
             </button>
-            <button
-              className="music-icon-button"
-              onClick={toggleMute}
-              aria-label={isMuted ? "Unmute music" : "Mute music"}
-            >
-              {isMuted ? (
-                <VolumeX aria-hidden="true" />
-              ) : (
-                <Volume2 aria-hidden="true" />
-              )}
-            </button>
           </div>
 
           <label className="music-volume-label">
@@ -319,17 +291,6 @@ export function MusicPlayer() {
       )}
 
       <div className="music-mini-dock">
-        <button
-          className="music-mute-button"
-          onClick={toggleMute}
-          aria-label={isMuted ? "Unmute music" : "Mute music"}
-        >
-          {isMuted ? (
-            <VolumeX aria-hidden="true" />
-          ) : (
-            <Volume2 aria-hidden="true" />
-          )}
-        </button>
         <button
           className="music-mini-player"
           onClick={() => setIsOpen((open) => !open)}

@@ -159,8 +159,8 @@ export function HomeScreen({
           <div
             style={{
               position: "relative",
-              width: 190,
-              height: 190,
+              width: 290,
+              height: 290,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -173,34 +173,34 @@ export function HomeScreen({
               <VoidEgg size={STAGE_SIZE.egg} onClick={onHatchNewEgg} />
             )}
           </div>
-        </div>
-      </div>
 
-      <div
-        style={{
-          position: "relative",
-          zIndex: 4,
-          width: "fit-content",
-          margin: "0 auto",
-          textAlign: "center",
-          background: CARD_BG,
-          padding: "6px 14px",
-          borderRadius: 14,
-          border: `2px solid ${CARD_LINE}`,
-        }}
-      >
-        <div
-          style={{
-            fontFamily: "'Baloo 2', sans-serif",
-            fontWeight: 700,
-            fontSize: 18,
-          }}
-        >
-          {hasSpecies
-            ? pet.hasCustomName
-              ? `${pet.name} the ${speciesLabel}`
-              : pet.name
-            : "A new arrival awaits"}
+          <div
+            style={{
+              position: "relative",
+              zIndex: 4,
+              marginTop: 4,
+              width: "fit-content",
+              textAlign: "center",
+              background: CARD_BG,
+              padding: "6px 14px",
+              borderRadius: 14,
+              border: `2px solid ${CARD_LINE}`,
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "'Baloo 2', sans-serif",
+                fontWeight: 700,
+                fontSize: 18,
+              }}
+            >
+              {hasSpecies
+                ? pet.hasCustomName
+                  ? `${pet.name} the ${speciesLabel}`
+                  : pet.name
+                : "A new arrival awaits"}
+            </div>
+          </div>
         </div>
       </div>
 

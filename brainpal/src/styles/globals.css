@@ -26,7 +26,6 @@ body {
   justify-content: flex-end;
   gap: 8px;
 }
-.music-mute-button,
 .music-mini-player,
 .music-icon-button,
 .music-play-button,
@@ -35,7 +34,6 @@ body {
   font: inherit;
   cursor: pointer;
 }
-.music-mute-button,
 .music-icon-button {
   display: grid;
   place-items: center;
@@ -47,7 +45,6 @@ body {
   color: inherit;
   box-shadow: 0 7px 22px oklch(25% 0.05 255 / 0.16);
 }
-.music-mute-button svg,
 .music-icon-button svg {
   width: 18px;
   height: 18px;
@@ -283,8 +280,8 @@ body {
   flex: 0 0 auto;
   box-sizing: border-box;
   border-style: solid;
-  border-color: oklch(70% 0.17 42 / 0.24);
-  border-top-color: oklch(70% 0.17 42);
+  border-color: oklch(45% 0.1 230 / 0.24);
+  border-top-color: oklch(45% 0.1 230);
   border-radius: 999px;
   animation: loadingSpin 0.75s linear infinite;
 }
