@@ -32,6 +32,7 @@ export interface SessionResults {
   total: number;
   accuracy: number;
   healthDelta: number;
+  growthDelta: number;
   celebrate: boolean;
   message: string;
 }

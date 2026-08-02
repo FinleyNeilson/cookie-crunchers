@@ -83,6 +83,9 @@ export function SignedInPetApp() {
   const [sessionCorrect, setSessionCorrect] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
   const [healthAtSessionStart, setHealthAtSessionStart] = useState(0);
+  const [growthAtSessionStart, setGrowthAtSessionStart] = useState(0);
+  const [stageAtSessionStart, setStageAtSessionStart] =
+    useState<LifeStage>("egg");
   const [results, setResults] = useState<SessionResults | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [managingDeckId, setManagingDeckId] = useState<string | null>(null);
@@ -96,17 +99,6 @@ export function SignedInPetApp() {
     | { kind: "graduated"; petName: string; species: Species }
     | null
   >(null);
-  // A review mid-session that triggers a stage-up celebration pauses
-  // instead of immediately moving to the next card/results — this is what
-  // to resume with once the celebration is dismissed. Graduation instead
-  // always ends the session (the pet that was growing no longer exists),
-  // so it never sets this.
-  const [pendingSessionStep, setPendingSessionStep] = useState<{
-    queue: ReviewCard[];
-    nextIndex: number;
-    newSessionCorrect: number;
-    newSessionTotal: number;
-  } | null>(null);
   // True right after choosing "Return to village" on the graduation
   // screen — lets the village render with the replacement egg still
   // unhatched instead of forcing the species picker immediately, the way
@@ -222,6 +214,8 @@ export function SignedInPetApp() {
     setSessionCorrect(0);
     setSessionTotal(0);
     setHealthAtSessionStart(petQuery.data?.health ?? 0);
+    setGrowthAtSessionStart(petQuery.data?.growthPoints ?? 0);
+    setStageAtSessionStart(petQuery.data?.stage ?? "egg");
     setScreen("review");
   }
 
@@ -232,10 +226,8 @@ export function SignedInPetApp() {
   }
 
   // Finishes out a review session: either wraps up into the results screen
-  // (last card) or queues up the next one. Split out from grade() so a
-  // stage-up celebration can pause here and resume it later via
-  // dismissStageUp, instead of it always running inline right after
-  // submitReview.
+  // (last card, where any stage-up crossed during the session finally gets
+  // its celebration) or queues up the next one.
   async function advanceSession({
     queue,
     nextIndex,
@@ -270,10 +262,25 @@ export function SignedInPetApp() {
         total: newSessionTotal,
         accuracy,
         healthDelta: petResult.health - healthAtSessionStart,
+        growthDelta: petResult.growthPoints - growthAtSessionStart,
         celebrate: accuracy >= 60,
         message,
       });
       setScreen("results");
+
+      // Stage-ups (e.g. hatching out of the egg) celebrate once the whole
+      // session wraps up, rather than interrupting mid-deck the instant a
+      // card happens to cross the threshold — this screen sits in front of
+      // the results screen just set above, and dismissing it reveals
+      // results underneath.
+      if (petResult.stage !== stageAtSessionStart) {
+        setCelebration({
+          kind: "stageUp",
+          stage: petResult.stage,
+          petName,
+          species: petQuery.data?.species as Species,
+        });
+      }
     } else {
       setReviewCards(queue);
       setSessionCorrect(newSessionCorrect);
@@ -284,17 +291,15 @@ export function SignedInPetApp() {
   }
 
   function dismissStageUp() {
+    // The results screen underneath was already set by advanceSession —
+    // dismissing just reveals it (see the stage-up check there).
     setCelebration(null);
-    const pending = pendingSessionStep;
-    setPendingSessionStep(null);
-    if (pending) void advanceSession(pending);
   }
 
   function dismissGraduation(returnToVillage: boolean) {
     setCelebration(null);
-    // Graduation always ends the session outright (see pendingSessionStep's
-    // comment) — nothing to resume, any cards left due just stay due.
-    setPendingSessionStep(null);
+    // Graduation always ends the session outright — any cards left due
+    // just stay due.
     setAwaitingNewEgg(returnToVillage);
     setScreen("home");
   }
@@ -306,14 +311,17 @@ export function SignedInPetApp() {
     setIsSubmittingReview(true);
     let graduated: { name: string | null; species: string | null } | null =
       null;
-    let stageAdvanced: { from: LifeStage; to: LifeStage } | null = null;
     try {
       const result = await submitReview.mutateAsync({
         cardId: card.id,
         grade: GRADE_TO_SM2[quality],
       });
       graduated = result.graduated;
-      stageAdvanced = result.stageAdvanced;
+      // Stage-ups (result.stageAdvanced) are intentionally not handled
+      // here — they celebrate once at the end of the session instead of
+      // interrupting it the instant one card happens to cross a threshold.
+      // See advanceSession, which compares the stage at session end against
+      // stageAtSessionStart.
     } finally {
       setIsSubmittingReview(false);
     }
@@ -341,32 +349,7 @@ export function SignedInPetApp() {
       return;
     }
 
-    if (stageAdvanced) {
-      await utils.pet.get.invalidate();
-      setPendingSessionStep({
-        queue,
-        nextIndex,
-        newSessionCorrect,
-        newSessionTotal,
-      });
-      setCelebration({
-        kind: "stageUp",
-        stage: stageAdvanced.to,
-        petName: petDisplayName(
-          petQuery.data?.name,
-          petQuery.data?.species as Species | null | undefined,
-        ),
-        species: petQuery.data?.species as Species,
-      });
-      return;
-    }
-
-    await advanceSession({
-      queue,
-      nextIndex,
-      newSessionCorrect,
-      newSessionTotal,
-    });
+    await advanceSession({ queue, nextIndex, newSessionCorrect, newSessionTotal });
   }
 
   if (decksQuery.isPending || petQuery.isPending) {

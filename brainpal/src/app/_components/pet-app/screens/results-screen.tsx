@@ -59,6 +59,10 @@ export function ResultsScreen({
           value={`${results.healthDelta >= 0 ? "+" : ""}${results.healthDelta}`}
           label="Health Δ"
         />
+        <ResultTile
+          value={`${results.growthDelta >= 0 ? "+" : ""}${results.growthDelta.toFixed(1)}`}
+          label="Growth"
+        />
       </div>
 
       <button
