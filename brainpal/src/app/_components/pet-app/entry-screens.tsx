@@ -237,16 +237,6 @@ export function SpeciesPickerScreen({
       </div>
       <div
         style={{
-          fontSize: 14,
-          color: "oklch(48% 0.04 255 / 0.7)",
-          textAlign: "center",
-          maxWidth: 420,
-        }}
-      >
-        Placeholder art for now, hand-drawn versions are coming later.
-      </div>
-      <div
-        style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
           gap: 16,

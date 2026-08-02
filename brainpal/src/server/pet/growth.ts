@@ -145,6 +145,12 @@ export async function graduatePet(
 // pets), so "the current pet" is whichever row has retiredAt: null. This
 // is also where a pet's death gets discovered — there's no cron job, so
 // it's checked lazily every time something resolves the active pet.
+//
+// Returns `diedPet` alongside the (possibly brand-new) active pet whenever
+// *this call* is the one that discovered and retired a death, so callers
+// that want to celebrate/mourn the moment (review.submit, debug.skipTime)
+// can tell "a pet just died" apart from "some pet died at some point in
+// the past" — every other caller can ignore it.
 export async function getActivePet(db: PrismaClient, userId: string) {
   const existing = await db.pet.findFirst({
     where: { userId, retiredAt: null },
@@ -165,9 +171,13 @@ export async function getActivePet(db: PrismaClient, userId: string) {
         where: { id: pet.id },
         data: { retiredAt: new Date(), retirementReason: "died" },
       });
-      return db.pet.create({ data: { userId } });
+      const replacement = await db.pet.create({ data: { userId } });
+      return {
+        pet: replacement,
+        diedPet: { name: pet.name, species: pet.species },
+      };
     }
   }
 
-  return pet;
+  return { pet, diedPet: null };
 }

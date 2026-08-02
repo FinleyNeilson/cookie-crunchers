@@ -14,8 +14,10 @@ export const petRouter = createTRPCRouter({
   get: protectedProcedure.query(async ({ ctx }) => {
     // Resolved first since it may itself retire a dead pet and spawn a
     // fresh one — everything below must reflect whichever pet is actually
-    // current after that.
-    const pet = await getActivePet(ctx.db, ctx.session.user.id);
+    // current after that. `diedPet` is included so the client can show a
+    // death screen even when death is discovered passively here (e.g. the
+    // app was just reopened) rather than via a review/debug action.
+    const { pet, diedPet } = await getActivePet(ctx.db, ctx.session.user.id);
     const stats = await getPetStats(ctx.db, ctx.session.user.id, pet.createdAt);
     const growthPoints = await getGrowthPoints(
       ctx.db,
@@ -28,13 +30,14 @@ export const petRouter = createTRPCRouter({
       ...stats,
       growthPoints,
       stage: stageForMastery(growthPoints),
+      diedPet,
     };
   }),
 
   setSpecies: protectedProcedure
     .input(z.object({ species: z.enum(SPECIES) }))
     .mutation(async ({ ctx, input }) => {
-      const pet = await getActivePet(ctx.db, ctx.session.user.id);
+      const { pet } = await getActivePet(ctx.db, ctx.session.user.id);
       return ctx.db.pet.update({
         where: { id: pet.id },
         data: { species: input.species },
@@ -46,7 +49,7 @@ export const petRouter = createTRPCRouter({
   setName: protectedProcedure
     .input(z.object({ name: z.string().trim().min(1).max(24) }))
     .mutation(async ({ ctx, input }) => {
-      const pet = await getActivePet(ctx.db, ctx.session.user.id);
+      const { pet } = await getActivePet(ctx.db, ctx.session.user.id);
       return ctx.db.pet.update({
         where: { id: pet.id },
         data: { name: input.name },

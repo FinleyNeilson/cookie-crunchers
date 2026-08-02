@@ -123,7 +123,7 @@ export const debugRouter = createTRPCRouter({
   advanceStage: protectedProcedure.mutation(async ({ ctx }) => {
     assertDevOnly();
 
-    const pet = await getActivePet(ctx.db, ctx.session.user.id);
+    const { pet } = await getActivePet(ctx.db, ctx.session.user.id);
     const growthPoints = await getGrowthPoints(
       ctx.db,
       ctx.session.user.id,
@@ -199,7 +199,7 @@ export const debugRouter = createTRPCRouter({
   forceGraduate: protectedProcedure.mutation(async ({ ctx }) => {
     assertDevOnly();
 
-    const pet = await getActivePet(ctx.db, ctx.session.user.id);
+    const { pet } = await getActivePet(ctx.db, ctx.session.user.id);
     const graduated = await graduatePet(ctx.db, ctx.session.user.id, pet);
     return { graduated };
   }),
@@ -210,12 +210,13 @@ export const debugRouter = createTRPCRouter({
   forceDie: protectedProcedure.mutation(async ({ ctx }) => {
     assertDevOnly();
 
-    const pet = await getActivePet(ctx.db, ctx.session.user.id);
+    const { pet } = await getActivePet(ctx.db, ctx.session.user.id);
     await ctx.db.pet.update({
       where: { id: pet.id },
       data: { retiredAt: new Date(), retirementReason: "died" },
     });
-    return ctx.db.pet.create({ data: { userId: ctx.session.user.id } });
+    await ctx.db.pet.create({ data: { userId: ctx.session.user.id } });
+    return { diedPet: { name: pet.name, species: pet.species } };
   }),
 
   // Simulates time passing without waiting for it — shifts every stored
@@ -269,8 +270,9 @@ export const debugRouter = createTRPCRouter({
         });
       }
 
-      const activePet = await getActivePet(ctx.db, userId);
-      return getPetStats(ctx.db, userId, activePet.createdAt);
+      const { pet: activePet, diedPet } = await getActivePet(ctx.db, userId);
+      const stats = await getPetStats(ctx.db, userId, activePet.createdAt);
+      return { ...stats, diedPet };
     }),
 
   // Wipes all of the user's decks/cards/pets and reseeds the standard demo

@@ -27,11 +27,21 @@ export function computeHealth(inputs: PetHealthInputs): number {
 
   let health = 100;
 
-  // Uncapped — a big enough overdue backlog alone should be able to bring
-  // this all the way to 0 (and, past the death-eligibility grace window,
-  // actually kill the pet), not just plateau partway. The final clamp
-  // below is the only bound this needs.
-  health -= overdueCount * 4 + overdueDaysSum * 1.5;
+  // Having any backlog at all costs a bounded amount up front — capped so
+  // an account that's just accumulated a lot of decks/cards (or a lot of
+  // pets across repeated debug testing) isn't punished for its sheer size,
+  // only for actually letting reviews go stale (below). Uncapped raw counts
+  // here made accounts with big libraries take near-instant fatal damage
+  // regardless of how overdue anything actually was.
+  health -= Math.min(20, overdueCount);
+
+  // The real, uncapped decay driver: how overdue cards are *on average*,
+  // not their raw total — so decay speed reflects how long reviews have
+  // actually been neglected, independent of library size, and can still
+  // reach 0 (and, past the death-eligibility grace window, actually kill
+  // the pet) given enough sustained neglect.
+  const avgOverdueDays = overdueCount > 0 ? overdueDaysSum / overdueCount : 0;
+  health -= avgOverdueDays * 10;
 
   if (recentAccuracy !== null && recentAccuracy < 0.7) {
     health -= (0.7 - recentAccuracy) * 100;

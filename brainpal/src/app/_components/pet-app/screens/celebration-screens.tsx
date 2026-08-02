@@ -168,3 +168,47 @@ export function GraduationScreen({
     </div>
   );
 }
+
+// Shown when the active pet's health hits 0 past the death-eligibility
+// grace window — it's retired as "died" and replaced with a blank pet the
+// same way graduation replaces a grown-up one, just with nothing to
+// celebrate. Shows the ghost art rather than the species art: that's what
+// this pet's memory looks like everywhere else it appears (see
+// village.tsx's RetiredPetPortrait), so it's shown here too. `species` can
+// be null — a pet can die of neglect before ever getting one chosen.
+export function DeathScreen({
+  petName,
+  species,
+  onContinue,
+}: {
+  petName: string;
+  species: Species | null;
+  onContinue: () => void;
+}) {
+  const speciesLabel = species ? SPECIES[species].label.toLowerCase() : "pet";
+
+  return (
+    <div style={screenStyle}>
+      <div style={titleStyle}>So sorry...</div>
+      <div style={{ width: 150, height: 150, opacity: 0.8 }}>
+        <img
+          src="/pets/ghost.svg"
+          alt="Ghost"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            objectPosition: "bottom",
+          }}
+        />
+      </div>
+      <div style={messageStyle}>
+        <strong>{petName}</strong> the {speciesLabel} died from neglect.
+        They&apos;ll be remembered in the village.
+      </div>
+      <button onClick={onContinue} style={primaryButtonStyle}>
+        Continue
+      </button>
+    </div>
+  );
+}

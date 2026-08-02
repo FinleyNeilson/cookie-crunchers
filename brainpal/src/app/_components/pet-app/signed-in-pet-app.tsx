@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { AIDeckMaker } from "~/app/_components/ai-deck-maker";
 import { LoadingSpinner } from "~/app/_components/loading-spinner";
@@ -21,6 +21,7 @@ import {
   SpeciesPickerScreen,
 } from "~/app/_components/pet-app/entry-screens";
 import {
+  DeathScreen,
   GraduationScreen,
   StageUpScreen,
 } from "~/app/_components/pet-app/screens/celebration-screens";
@@ -56,6 +57,20 @@ function petDisplayName(
 ): string {
   if (name) return name;
   return species ? `${SPECIES[species].label} Hatchling` : "Your pet";
+}
+
+// Shared by every place a death can be discovered (a review, skip-time,
+// force-die, or just loading the app after enough real time has passed) —
+// builds the celebration state DeathScreen renders from.
+function diedCelebration(diedPet: {
+  name: string | null;
+  species: string | null;
+}) {
+  return {
+    kind: "died" as const,
+    petName: petDisplayName(diedPet.name, diedPet.species as Species | null),
+    species: diedPet.species as Species | null,
+  };
 }
 
 export function SignedInPetApp() {
@@ -98,6 +113,7 @@ export function SignedInPetApp() {
   const [celebration, setCelebration] = useState<
     | { kind: "stageUp"; stage: LifeStage; petName: string; species: Species }
     | { kind: "graduated"; petName: string; species: Species }
+    | { kind: "died"; petName: string; species: Species | null }
     | null
   >(null);
   // True right after choosing "Return to village" on the graduation
@@ -105,6 +121,18 @@ export function SignedInPetApp() {
   // unhatched instead of forcing the species picker immediately, the way
   // "Find a new egg" does.
   const [awaitingNewEgg, setAwaitingNewEgg] = useState(false);
+
+  // Catches deaths discovered passively — e.g. the app was just opened
+  // (or a background refetch fired) after enough real time passed for
+  // health to hit 0 with no review/debug action this session to attach the
+  // news to. `diedPet` is only ever non-null on the exact pet.get response
+  // that discovers a given death (see getActivePet), so this never re-fires
+  // for the same pet on subsequent refetches.
+  useEffect(() => {
+    if (petQuery.data?.diedPet) {
+      setCelebration(diedCelebration(petQuery.data.diedPet));
+    }
+  }, [petQuery.data?.diedPet]);
 
   function toast(msg: string) {
     setToastMsg(msg);
@@ -175,15 +203,19 @@ export function SignedInPetApp() {
   }
 
   async function handleForceDie() {
-    await forceDie.mutateAsync();
+    const { diedPet } = await forceDie.mutateAsync();
     await invalidateAll();
-    toast("Forced death");
+    setCelebration(diedCelebration(diedPet));
   }
 
   async function handleSkipTime(hours: number) {
     const stats = await skipTime.mutateAsync({ hours });
     await invalidateAll();
-    toast(`Skipped ${hours}h — health now ${stats.health}%`);
+    if (stats.diedPet) {
+      setCelebration(diedCelebration(stats.diedPet));
+    } else {
+      toast(`Skipped ${hours}h — health now ${stats.health}%`);
+    }
   }
 
   async function handleResetAccount(): Promise<boolean> {
@@ -313,6 +345,14 @@ export function SignedInPetApp() {
     setScreen("home");
   }
 
+  function dismissDied() {
+    setCelebration(null);
+    // Same reasoning as graduation: the pet that was reviewing no longer
+    // exists, so the session just ends — the species gate below will pick
+    // up the fresh (species-less) replacement automatically.
+    setScreen("home");
+  }
+
   async function grade(quality: Grade) {
     const card = reviewCards[reviewIndex];
     if (!card || isSubmittingReview) return;
@@ -320,12 +360,15 @@ export function SignedInPetApp() {
     setIsSubmittingReview(true);
     let graduated: { name: string | null; species: string | null } | null =
       null;
+    let diedPet: { name: string | null; species: string | null } | null =
+      null;
     try {
       const result = await submitReview.mutateAsync({
         cardId: card.id,
         grade: GRADE_TO_SM2[quality],
       });
       graduated = result.graduated;
+      diedPet = result.diedPet;
       // Stage-ups (result.stageAdvanced) are intentionally not handled
       // here — they celebrate once at the end of the session instead of
       // interrupting it the instant one card happens to cross a threshold.
@@ -344,6 +387,18 @@ export function SignedInPetApp() {
     // tomorrow.
     const queue = quality === "again" ? [...reviewCards, card] : reviewCards;
     const nextIndex = reviewIndex + 1;
+
+    // A death discovered here means the *previous* pet (not the one this
+    // review just graded against) had already starved out from backlog
+    // before this review even started — see getActivePet. Takes priority
+    // over graduation/session-advance since it's the more surprising,
+    // scene-setting event of the two.
+    if (diedPet) {
+      await utils.pet.village.invalidate();
+      await utils.pet.get.invalidate();
+      setCelebration(diedCelebration(diedPet));
+      return;
+    }
 
     if (graduated) {
       await utils.pet.village.invalidate();
@@ -390,6 +445,17 @@ export function SignedInPetApp() {
         species={celebration.species}
         onReturnToVillage={() => dismissGraduation(true)}
         onFindNewEgg={() => dismissGraduation(false)}
+      />
+    );
+  }
+  // Same reasoning as graduation above — the replacement pet spawned after
+  // a death also has no species yet.
+  if (celebration?.kind === "died") {
+    return (
+      <DeathScreen
+        petName={celebration.petName}
+        species={celebration.species}
+        onContinue={dismissDied}
       />
     );
   }

@@ -59,10 +59,15 @@ export const reviewRouter = createTRPCRouter({
       // whole review history — see server/pet/growth.ts. getActivePet also
       // resolves any health-triggered death from before this review, so a
       // graduation check here always applies to whichever pet is actually
-      // current at this moment. Snapshotted *before* the update below so a
+      // current at this moment. `diedPet` means *that* resolution is what
+      // just discovered the death — surfaced below so the client can show
+      // a death screen for it. Snapshotted *before* the update below so a
       // stage change caused by this review can be detected by comparing
       // against the stage after.
-      const activePet = await getActivePet(ctx.db, ctx.session.user.id);
+      const { pet: activePet, diedPet } = await getActivePet(
+        ctx.db,
+        ctx.session.user.id,
+      );
       const stageBefore = stageForMastery(
         await getGrowthPoints(ctx.db, ctx.session.user.id, activePet.createdAt),
       );
@@ -107,6 +112,6 @@ export const reviewRouter = createTRPCRouter({
         }
       }
 
-      return { reviewLog, graduated, stageAdvanced };
+      return { reviewLog, graduated, stageAdvanced, diedPet };
     }),
 });
