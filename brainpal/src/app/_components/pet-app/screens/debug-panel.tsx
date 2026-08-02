@@ -18,6 +18,7 @@ export function DebugPanel({
   onAdvanceStage,
   onForceGraduate,
   onForceDie,
+  onSkipTime,
   onResetAccount,
   isAddingTestDecks,
   isClearingTestDecks,
@@ -25,6 +26,7 @@ export function DebugPanel({
   isAdvancing,
   isGraduating,
   isDying,
+  isSkippingTime,
   isResetting,
 }: {
   pet: PetState;
@@ -34,6 +36,7 @@ export function DebugPanel({
   onAdvanceStage: () => void;
   onForceGraduate: () => void;
   onForceDie: () => void;
+  onSkipTime: (hours: number) => void;
   // Resolves to whether the reset actually happened (the caller shows a
   // confirm() dialog first) — the panel only closes itself on true, so
   // cancelling leaves it open, matching the original inline behavior.
@@ -44,6 +47,7 @@ export function DebugPanel({
   isAdvancing: boolean;
   isGraduating: boolean;
   isDying: boolean;
+  isSkippingTime: boolean;
   isResetting: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -146,6 +150,12 @@ export function DebugPanel({
               </DebugButton>
               <DebugButton onClick={onForceDie} disabled={isDying}>
                 Force death (ghost)
+              </DebugButton>
+              <DebugButton
+                onClick={() => onSkipTime(12)}
+                disabled={isSkippingTime}
+              >
+                Skip 12 hours (health decay)
               </DebugButton>
               <DebugButton
                 onClick={() => void handleReset()}

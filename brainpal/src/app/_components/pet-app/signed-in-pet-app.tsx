@@ -73,6 +73,7 @@ export function SignedInPetApp() {
   const advanceStage = api.debug.advanceStage.useMutation();
   const forceGraduate = api.debug.forceGraduate.useMutation();
   const forceDie = api.debug.forceDie.useMutation();
+  const skipTime = api.debug.skipTime.useMutation();
   const resetAccount = api.debug.resetAccount.useMutation();
 
   const [screen, setScreen] = useState<Screen>("home");
@@ -177,6 +178,12 @@ export function SignedInPetApp() {
     await forceDie.mutateAsync();
     await invalidateAll();
     toast("Forced death");
+  }
+
+  async function handleSkipTime(hours: number) {
+    const stats = await skipTime.mutateAsync({ hours });
+    await invalidateAll();
+    toast(`Skipped ${hours}h — health now ${stats.health}%`);
   }
 
   async function handleResetAccount(): Promise<boolean> {
@@ -509,6 +516,7 @@ export function SignedInPetApp() {
         onAdvanceStage={() => void handleAdvanceStage()}
         onForceGraduate={() => void handleForceGraduate()}
         onForceDie={() => void handleForceDie()}
+        onSkipTime={(hours) => void handleSkipTime(hours)}
         onResetAccount={handleResetAccount}
         isAddingTestDecks={addTestDecks.isPending}
         isClearingTestDecks={clearTestDecks.isPending}
@@ -516,6 +524,7 @@ export function SignedInPetApp() {
         isAdvancing={advanceStage.isPending}
         isGraduating={forceGraduate.isPending}
         isDying={forceDie.isPending}
+        isSkippingTime={skipTime.isPending}
         isResetting={resetAccount.isPending}
       />
 

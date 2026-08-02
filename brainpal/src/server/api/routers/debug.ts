@@ -4,6 +4,7 @@ import { z } from "zod";
 import { env } from "~/env";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { seedDemoDataForUser } from "~/server/demo-seed";
+import { getPetStats } from "~/server/pet/health";
 import {
   getActivePet,
   getGrowthPoints,
@@ -216,6 +217,61 @@ export const debugRouter = createTRPCRouter({
     });
     return ctx.db.pet.create({ data: { userId: ctx.session.user.id } });
   }),
+
+  // Simulates time passing without waiting for it — shifts every stored
+  // timestamp health/growth math reads (card due dates, review log times,
+  // pet created/retired dates) back by the same amount, so "now" (left
+  // untouched) is effectively `hours` further into the future relative to
+  // all of it. Shifting everything by the same delta preserves relative
+  // ordering (e.g. which reviews count toward the active pet's growth),
+  // rather than just editing one field and skewing that math.
+  skipTime: protectedProcedure
+    .input(z.object({ hours: z.number().positive() }).optional())
+    .mutation(async ({ ctx, input }) => {
+      assertDevOnly();
+
+      const hours = input?.hours ?? 12;
+      const deltaMs = hours * 60 * 60 * 1000;
+      const userId = ctx.session.user.id;
+
+      const cards = await ctx.db.card.findMany({
+        where: { deck: { userId } },
+        select: { id: true, dueAt: true },
+      });
+      for (const card of cards) {
+        await ctx.db.card.update({
+          where: { id: card.id },
+          data: { dueAt: new Date(card.dueAt.getTime() - deltaMs) },
+        });
+      }
+
+      const reviewLogs = await ctx.db.reviewLog.findMany({
+        where: { card: { deck: { userId } } },
+        select: { id: true, reviewedAt: true },
+      });
+      for (const log of reviewLogs) {
+        await ctx.db.reviewLog.update({
+          where: { id: log.id },
+          data: { reviewedAt: new Date(log.reviewedAt.getTime() - deltaMs) },
+        });
+      }
+
+      const pets = await ctx.db.pet.findMany({ where: { userId } });
+      for (const pet of pets) {
+        await ctx.db.pet.update({
+          where: { id: pet.id },
+          data: {
+            createdAt: new Date(pet.createdAt.getTime() - deltaMs),
+            retiredAt: pet.retiredAt
+              ? new Date(pet.retiredAt.getTime() - deltaMs)
+              : null,
+          },
+        });
+      }
+
+      const activePet = await getActivePet(ctx.db, userId);
+      return getPetStats(ctx.db, userId, activePet.createdAt);
+    }),
 
   // Wipes all of the user's decks/cards/pets and reseeds the standard demo
   // data — a clean-slate button for repeated demo run-throughs.
