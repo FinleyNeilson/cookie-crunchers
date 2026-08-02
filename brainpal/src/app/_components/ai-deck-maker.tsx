@@ -4,6 +4,9 @@ import { useState } from "react";
 
 import { LoadingSpinner } from "./loading-spinner";
 
+const MIN_CARD_COUNT = 5;
+const MAX_CARD_COUNT = 100;
+
 export type GeneratedDeckResult = {
   id: string;
   name: string;
@@ -18,13 +21,19 @@ export function AIDeckMaker({
   onCreated: (deck: GeneratedDeckResult) => Promise<void>;
 }) {
   const [files, setFiles] = useState<File[]>([]);
-  const [cardCount, setCardCount] = useState(20);
+  const [cardCountInput, setCardCountInput] = useState("20");
   const [contentType, setContentType] = useState<
     "flashcards" | "quizzes" | "mixed"
   >("mixed");
   const [instructions, setInstructions] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const cardCount = Number(cardCountInput);
+  const isCardCountValid =
+    cardCountInput.trim() !== "" &&
+    Number.isInteger(cardCount) &&
+    cardCount >= MIN_CARD_COUNT &&
+    cardCount <= MAX_CARD_COUNT;
 
   function addFiles(incoming: FileList | null) {
     if (!incoming) return;
@@ -44,6 +53,12 @@ export function AIDeckMaker({
 
   async function generateDeck() {
     if (files.length === 0 || isGenerating) return;
+    if (!isCardCountValid) {
+      setErrorMessage(
+        `Enter a whole number between ${MIN_CARD_COUNT} and ${MAX_CARD_COUNT}.`,
+      );
+      return;
+    }
     setIsGenerating(true);
     setErrorMessage("");
     try {
@@ -194,13 +209,23 @@ export function AIDeckMaker({
             Number of cards
             <input
               type="number"
-              min={5}
-              max={60}
-              value={cardCount}
+              min={MIN_CARD_COUNT}
+              max={MAX_CARD_COUNT}
+              step={1}
+              value={cardCountInput}
               disabled={isGenerating}
-              onChange={(event) => setCardCount(Number(event.target.value))}
+              aria-invalid={!isCardCountValid}
+              onChange={(event) => {
+                setCardCountInput(event.target.value);
+                setErrorMessage("");
+              }}
               style={fieldStyle}
             />
+            <span
+              style={{ display: "block", marginTop: 5, fontSize: 11, fontWeight: 500 }}
+            >
+              {MIN_CARD_COUNT}–{MAX_CARD_COUNT} cards
+            </span>
           </label>
           <label
             className="ai-focus-field"
@@ -226,7 +251,12 @@ export function AIDeckMaker({
         )}
         <button
           type="button"
-          disabled={files.length === 0 || isGenerating || totalMb > 50}
+          disabled={
+            files.length === 0 ||
+            isGenerating ||
+            totalMb > 50 ||
+            !isCardCountValid
+          }
           onClick={() => void generateDeck()}
           className="ai-generate"
         >

@@ -581,7 +581,7 @@ export function SignedInPetApp() {
             flipped={flipped}
             setFlipped={setFlipped}
             isSubmittingReview={isSubmittingReview}
-            onGrade={(quality) => void grade(quality)}
+            onGrade={grade}
             onBack={() => setScreen("decks")}
           />
         )}
