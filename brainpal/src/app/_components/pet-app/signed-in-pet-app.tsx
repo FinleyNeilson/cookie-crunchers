@@ -420,7 +420,6 @@ export function SignedInPetApp() {
   };
 
   const speciesLabel = pet.species ? SPECIES[pet.species].label : "";
-  const totalDue = decks.reduce((sum, d) => sum + d.dueCards, 0);
   const isNeglected = pet.health < 30;
 
   // Checked here (rather than alongside the graduated celebration above)
@@ -475,7 +474,7 @@ export function SignedInPetApp() {
         flexDirection: "column",
         fontFamily: "'Nunito', sans-serif",
         color: INK,
-        background: screen === "home" ? "oklch(90% 0.045 230)" : PAPER,
+        background: PAPER,
       }}
     >
       <TopNav navItems={navItems} screen={screen} setScreen={setScreen} />
@@ -527,7 +526,6 @@ export function SignedInPetApp() {
           isNeglected={isNeglected}
           growthProgressPct={growthProgressPct}
           growthRightLabel={growthRightLabel}
-          totalDue={totalDue}
           decksCount={decks.length}
           weeklyAccuracy={weeklyAccuracy}
           retiredPets={villageQuery.data}

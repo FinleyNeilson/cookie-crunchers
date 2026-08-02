@@ -18,6 +18,13 @@ export function TopNav({
   screen: Screen;
   setScreen: (screen: Screen) => void;
 }) {
+  // Deck detail, review, and results are all part of the Decks flow even
+  // though they have their own screen state.
+  const activeNavKey =
+    screen === "deckDetail" || screen === "review" || screen === "results"
+      ? "decks"
+      : screen;
+
   return (
     <div
       style={{
@@ -34,7 +41,7 @@ export function TopNav({
         alignItems: "center",
         gap: 16,
         padding: "12px 24px",
-        background: "oklch(97% 0.03 90 / 0.85)",
+        background: "#FEFEFE",
         backdropFilter: "blur(10px)",
         borderBottom: `1px solid ${CARD_LINE}`,
       }}
@@ -59,7 +66,7 @@ export function TopNav({
         style={{
           display: "flex",
           gap: 4,
-          background: "oklch(94% 0.035 230)",
+          background: "#E9F7FF",
           padding: 4,
           borderRadius: 16,
           justifySelf: "center",
@@ -72,11 +79,13 @@ export function TopNav({
             style={{
               border: "none",
               background:
-                screen === item.key ? "oklch(88% 0.09 42)" : "transparent",
+                activeNavKey === item.key
+                  ? "#4A83A0"
+                  : "transparent",
               color:
-                screen === item.key
-                  ? TERRACOTTA_DEEP
-                  : "oklch(45% 0.04 255 / 0.65)",
+                activeNavKey === item.key
+                  ? "white"
+                  : "#7692A0",
               padding: "9px 16px",
               borderRadius: 12,
               fontWeight: 800,
@@ -101,7 +110,7 @@ export function TopNav({
           style={{
             border: "none",
             background: "transparent",
-            color: "oklch(45% 0.04 255 / 0.55)",
+            color: "#7692A0",
             fontWeight: 700,
             fontSize: 13,
             cursor: "pointer",

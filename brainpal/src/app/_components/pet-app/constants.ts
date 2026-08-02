@@ -4,24 +4,23 @@ import {
   type Species,
 } from "~/app/_components/pet-app/types";
 
-// Palette sampled from the village background illustration
-// (public/village-bg.png): royal-blue outline, sky-blue paper, sunshine
-// gold, grass green, and pops of coral/rose — see that image for the
-// source colors this is keyed off.
-export const INK = "oklch(30% 0.11 260)";
-export const PAPER = "oklch(94% 0.035 230)";
-export const CARD_BG = "oklch(98% 0.03 90)";
-export const CARD_LINE = "oklch(85% 0.05 250)";
-export const TERRACOTTA = "oklch(70% 0.17 42)";
-export const TERRACOTTA_DEEP = "oklch(54% 0.17 42)";
-export const GOLDEN = "oklch(82% 0.15 97)";
-export const LEAF = "oklch(64% 0.15 140)";
+// Palette sampled from Frame 25.svg: a bright sky, grassy hills, sunshine
+// yellow, royal-blue linework, and lilac/pink details.
+export const INK = "#101311";
+export const PAPER = "#C5EBFA";
+export const CARD_BG = "#EAF5FC";
+export const CARD_LINE = "#D2E3EC";
+export const TERRACOTTA = "#101311";
+export const TERRACOTTA_DEEP = "#356F8F";
+export const GOLDEN = "#E4C15B";
+export const LEAF = "#8CB276";
 
 // Decks-screen-specific accents (matches the "Study" button and
-// mastered/done state in the deck-card redesign).
-export const MAROON = "oklch(34% 0.15 350)";
-export const MASTERED_GREEN = "oklch(50% 0.13 140)";
-export const MASTERED_GREEN_BG = "oklch(90% 0.07 140)";
+// mastered/done state in the deck-card redesign). Same blue as the
+// village screen's "Study now" button, for a consistent accent color.
+export const STUDY_BLUE = "#4A83A0";
+export const MASTERED_GREEN = "#638B63";
+export const MASTERED_GREEN_BG = "#DCEBDD";
 
 export const STAGE_LABEL: Record<LifeStage, string> = {
   egg: "Egg",
@@ -76,7 +75,7 @@ export const GRADE_TO_SM2: Record<Grade, number> = {
 };
 
 export const DECK_ACCENT_PALETTE: { bg: string; color: string }[] = [
-  { bg: "oklch(90% 0.07 88)", color: "oklch(46% 0.1 85)" },
-  { bg: "oklch(90% 0.08 20)", color: "oklch(45% 0.1 20)" },
-  { bg: "oklch(88% 0.07 150)", color: "oklch(42% 0.08 150)" },
+  { bg: "#FFED96", color: "#0B459D" },
+  { bg: "#FBD2C9", color: "#803A3D" },
+  { bg: "#D7EBCB", color: "#4E7E3A" },
 ];

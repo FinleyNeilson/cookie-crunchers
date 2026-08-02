@@ -8,6 +8,8 @@
 
 body {
   margin: 0;
+  background: #c5ebfa;
+  overflow: hidden;
 }
 
 .music-player-root {
@@ -41,7 +43,7 @@ body {
   height: 42px;
   min-width: 42px;
   border-radius: 14px;
-  background: oklch(98% 0.02 80);
+  background: oklch(98% 0.02 230);
   color: inherit;
   box-shadow: 0 7px 22px oklch(25% 0.05 255 / 0.16);
 }
@@ -58,7 +60,7 @@ body {
   min-width: 190px;
   padding: 9px 13px;
   border-radius: 16px;
-  background: oklch(98% 0.02 80);
+  background: oklch(98% 0.02 230);
   color: inherit;
   text-align: left;
   box-shadow: 0 7px 22px oklch(25% 0.05 255 / 0.16);
@@ -87,7 +89,7 @@ body {
   width: 32px;
   height: 32px;
   border-radius: 11px;
-  background: oklch(88% 0.07 150);
+  background: oklch(88% 0.07 230);
   font-size: 17px;
 }
 .music-note-icon svg {
@@ -104,9 +106,9 @@ body {
   width: 330px;
   box-sizing: border-box;
   padding: 18px;
-  border: 2px solid oklch(87% 0.04 75);
+  border: 2px solid oklch(87% 0.04 230);
   border-radius: 22px;
-  background: oklch(98% 0.02 80);
+  background: oklch(98% 0.02 230);
   box-shadow: 0 18px 48px oklch(25% 0.05 255 / 0.22);
 }
 .music-panel-header,
@@ -134,7 +136,7 @@ body {
 }
 .music-icon-button {
   box-shadow: none;
-  background: oklch(92% 0.025 80);
+  background: oklch(92% 0.025 230);
   font-size: 18px;
 }
 .music-now-playing {
@@ -142,7 +144,7 @@ body {
   margin-top: 15px;
   padding: 12px;
   border-radius: 16px;
-  background: oklch(94% 0.035 80);
+  background: oklch(94% 0.035 230);
 }
 .music-cover {
   display: grid;
@@ -151,7 +153,7 @@ body {
   height: 48px;
   flex: 0 0 auto;
   border-radius: 13px;
-  background: oklch(88% 0.07 150);
+  background: oklch(88% 0.07 230);
   font-size: 22px;
 }
 .music-cover svg {
@@ -178,7 +180,7 @@ body {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: oklch(66% 0.13 40);
+  background: oklch(58% 0.11 230);
   color: white;
   font-weight: 900;
 }
@@ -197,7 +199,7 @@ body {
 }
 .music-volume-label input {
   width: 100%;
-  accent-color: oklch(66% 0.13 40);
+  accent-color: oklch(58% 0.11 230);
 }
 .music-track-list {
   display: grid;
@@ -215,7 +217,7 @@ body {
 }
 .music-track-row:hover,
 .music-track-row.is-selected {
-  background: oklch(91% 0.05 150);
+  background: oklch(91% 0.05 230);
 }
 .music-track-row > span:nth-child(2) {
   display: grid;
@@ -333,8 +335,15 @@ body {
   }
 }
 
+.review-screen {
+  /* A definite width keeps the card from shrink-wrapping short prompts. */
+  width: min(560px, 100%);
+  margin: 0 auto;
+}
+
 .flashcard-scene {
-  height: 344px;
+  width: 100%;
+  height: 420px;
   margin-top: 18px;
   perspective: 1100px;
 }
@@ -361,10 +370,10 @@ body {
   box-sizing: border-box;
   padding: 42px 30px 32px;
   overflow: hidden;
-  border: 2px solid oklch(87% 0.04 75);
+  border: 2px solid #d2e3ec;
   border-radius: 28px;
-  background: oklch(98% 0.02 80);
-  box-shadow: 0 12px 30px oklch(35% 0.05 60 / 0.12);
+  background: #eaf5fc;
+  box-shadow: 0 12px 30px rgb(27 57 70 / 0.12);
   text-align: center;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -374,11 +383,11 @@ body {
 }
 
 .flashcard-back {
-  border-color: oklch(72% 0.1 150);
+  border-color: #4e7e3a;
   background: linear-gradient(
     180deg,
-    oklch(91% 0.06 150) 0 64px,
-    oklch(98% 0.02 80) 64px
+    #d7ebcb 0 64px,
+    #eaf5fc 64px
   );
   transform: rotateY(180deg);
 }
@@ -391,12 +400,12 @@ body {
 }
 
 .study-side-label {
-  color: oklch(48% 0.04 255 / 0.65);
+  color: #3563a5;
   font-size: 12px;
   font-weight: 800;
 }
 .answer-side-label {
-  color: oklch(38% 0.11 150);
+  color: #4e7e3a;
   font-family: "Baloo 2", sans-serif;
   font-size: 24px;
   font-weight: 800;
@@ -415,7 +424,7 @@ body {
 .flashcard-hint {
   position: absolute;
   bottom: 22px;
-  color: oklch(48% 0.04 255 / 0.48);
+  color: #6080ad;
   font-size: 12px;
   font-weight: 700;
 }
@@ -424,10 +433,10 @@ body {
   min-height: 340px;
   margin-top: 18px;
   padding: 28px;
-  border: 2px solid oklch(87% 0.04 75);
+  border: 2px solid #d2e3ec;
   border-radius: 28px;
-  background: oklch(98% 0.02 80);
-  box-shadow: 0 12px 30px oklch(35% 0.05 60 / 0.12);
+  background: #eaf5fc;
+  box-shadow: 0 12px 30px rgb(27 57 70 / 0.12);
   text-align: center;
 }
 .quiz-options {
@@ -442,7 +451,7 @@ body {
   gap: 12px;
   width: 100%;
   padding: 13px 15px;
-  border: 2px solid oklch(87% 0.04 75);
+  border: 2px solid #78a9da;
   border-radius: 14px;
   background: white;
   color: inherit;
@@ -454,7 +463,7 @@ body {
     transform 0.15s;
 }
 .quiz-option:not(:disabled):hover {
-  border-color: oklch(66% 0.13 40);
+  border-color: #1158c7;
   transform: translateY(-1px);
 }
 .quiz-option-letter {
@@ -464,7 +473,7 @@ body {
   height: 28px;
   flex: 0 0 auto;
   border-radius: 9px;
-  background: oklch(92% 0.03 80);
+  background: #ffed96;
   font-size: 12px;
   font-weight: 900;
 }
@@ -474,14 +483,14 @@ body {
   font-weight: 900;
 }
 .quiz-option-correct {
-  border-color: oklch(60% 0.12 150);
-  background: oklch(94% 0.06 150);
-  color: oklch(35% 0.1 150);
+  border-color: #4e7e3a;
+  background: #d7ebcb;
+  color: #315d28;
 }
 .quiz-option-wrong {
-  border-color: oklch(64% 0.14 25);
-  background: oklch(95% 0.06 25);
-  color: oklch(42% 0.13 25);
+  border-color: #803a3d;
+  background: #fbd2c9;
+  color: #803a3d;
 }
 .quiz-feedback {
   display: flex;
@@ -493,12 +502,12 @@ body {
   font-size: 13px;
 }
 .quiz-feedback-correct {
-  background: oklch(94% 0.06 150);
-  color: oklch(35% 0.1 150);
+  background: #d7ebcb;
+  color: #315d28;
 }
 .quiz-feedback-wrong {
-  background: oklch(95% 0.06 25);
-  color: oklch(42% 0.13 25);
+  background: #fbd2c9;
+  color: #803a3d;
 }
 .quiz-continue-button {
   width: 100%;
@@ -506,7 +515,7 @@ body {
   padding: 14px;
   border: 0;
   border-radius: 15px;
-  background: oklch(66% 0.13 40);
+  background: #101311;
   color: white;
   font-size: 15px;
   font-weight: 800;
@@ -535,7 +544,7 @@ body {
   box-sizing: border-box;
   border-radius: 26px;
   padding: 26px;
-  background: oklch(98% 0.03 90);
+  background: oklch(97% 0.02 230);
   border: 3px solid oklch(30% 0.11 260);
   box-shadow: 0 18px 60px oklch(20% 0.06 260 / 0.28);
 }
@@ -567,8 +576,8 @@ body {
   padding: 20px;
   text-align: center;
   border-radius: 20px;
-  border: 2px dashed oklch(70% 0.17 42);
-  background: oklch(96% 0.045 48);
+  border: 2px dashed oklch(58% 0.11 230);
+  background: oklch(96% 0.02 230);
   position: relative;
 }
 .ai-file-picker-label {
@@ -591,7 +600,7 @@ body {
   gap: 10px;
   padding: 9px 12px;
   border-radius: 12px;
-  background: oklch(93% 0.03 90);
+  background: oklch(93% 0.02 230);
   font-size: 13px;
 }
 .ai-file-name {
@@ -620,15 +629,15 @@ body {
   padding: 13px 18px;
   border: 0;
   border-radius: 15px;
-  background: oklch(70% 0.17 42);
+  background: oklch(58% 0.11 230);
   color: white;
   font-weight: 800;
   font-size: 15px;
   cursor: pointer;
 }
 .ai-generate:disabled {
-  background: oklch(82% 0.025 90);
-  color: oklch(50% 0.025 90);
+  background: oklch(82% 0.025 230);
+  color: oklch(50% 0.025 230);
   cursor: default;
 }
 @media (max-width: 560px) {

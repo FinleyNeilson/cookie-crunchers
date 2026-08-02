@@ -80,7 +80,7 @@ export function StatBar({
         style={{
           height: 10,
           borderRadius: 6,
-          background: `oklch(91% 0.03 ${hue})`,
+          background: hue === 97 ? "#FFED96" : `oklch(91% 0.03 ${hue})`,
           overflow: "hidden",
         }}
       >
@@ -88,7 +88,7 @@ export function StatBar({
           style={{
             height: "100%",
             width: `${value}%`,
-            background: `oklch(68% 0.13 ${hue})`,
+            background: hue === 97 ? "#E4C15B" : `oklch(68% 0.13 ${hue})`,
             borderRadius: 6,
             transition: "width 0.5s",
           }}

@@ -52,13 +52,13 @@ export function ReviewScreen({
   }
 
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto" }}>
+    <div className="review-screen">
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <button
           onClick={onBack}
           style={{
             border: "none",
-            background: "oklch(91% 0.03 230)",
+            background: "#E9F7FF",
             width: 36,
             height: 36,
             borderRadius: "50%",
@@ -93,7 +93,7 @@ export function ReviewScreen({
           style={{
             fontWeight: 800,
             fontSize: 13,
-            color: "oklch(48% 0.04 255 / 0.6)",
+            color: "#3563A5",
             whiteSpace: "nowrap",
           }}
         >
@@ -108,8 +108,8 @@ export function ReviewScreen({
           marginTop: 22,
         }}
       >
-        <div style={{ width: 78, height: 78 }}>
-          <PetPortrait pet={pet} size={78} />
+        <div style={{ width: 110, height: 110 }}>
+          <PetPortrait pet={pet} size={110} />
         </div>
       </div>
 
@@ -225,8 +225,8 @@ export function ReviewScreen({
               padding: 16,
               border: "none",
               borderRadius: 16,
-              background: "oklch(87% 0.11 350)",
-              color: "oklch(34% 0.13 350)",
+              background: "#FBD2C9",
+              color: "#803A3D",
               fontWeight: 800,
               fontSize: 14,
               cursor: isSubmittingReview ? "default" : "pointer",
@@ -245,8 +245,8 @@ export function ReviewScreen({
               padding: 16,
               border: "none",
               borderRadius: 16,
-              background: "oklch(88% 0.1 50)",
-              color: "oklch(36% 0.11 50)",
+              background: "#FFDBB8",
+              color: "#844119",
               fontWeight: 800,
               fontSize: 14,
               cursor: isSubmittingReview ? "default" : "pointer",
@@ -265,8 +265,8 @@ export function ReviewScreen({
               padding: 16,
               border: "none",
               borderRadius: 16,
-              background: "oklch(87% 0.09 140)",
-              color: "oklch(34% 0.09 140)",
+              background: "#D7EBCB",
+              color: "#315D28",
               fontWeight: 800,
               fontSize: 14,
               cursor: isSubmittingReview ? "default" : "pointer",
@@ -285,8 +285,8 @@ export function ReviewScreen({
               padding: 16,
               border: "none",
               borderRadius: 16,
-              background: "oklch(88% 0.09 97)",
-              color: "oklch(38% 0.1 97)",
+              background: "#FFED96",
+              color: "#0B459D",
               fontWeight: 800,
               fontSize: 14,
               cursor: isSubmittingReview ? "default" : "pointer",

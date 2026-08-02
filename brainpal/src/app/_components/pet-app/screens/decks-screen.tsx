@@ -7,9 +7,9 @@ import {
   CARD_LINE,
   GOLDEN,
   INK,
-  MAROON,
   MASTERED_GREEN,
   MASTERED_GREEN_BG,
+  STUDY_BLUE,
   TERRACOTTA,
 } from "~/app/_components/pet-app/constants";
 import { type DeckSummary } from "~/app/_components/pet-app/types";
@@ -233,7 +233,7 @@ export function DecksScreen({
               padding: "12px 20px",
               border: "none",
               borderRadius: 16,
-              background: GOLDEN,
+              background: "#FFED96",
               color: "oklch(30% 0.09 97)",
               fontWeight: 800,
               fontSize: 14,
@@ -616,7 +616,7 @@ function DeckCard({
               padding: 9,
               border: "none",
               borderRadius: 12,
-              background: MAROON,
+              background: STUDY_BLUE,
               color: "oklch(98% 0.01 90)",
               fontWeight: 800,
               fontSize: 13,

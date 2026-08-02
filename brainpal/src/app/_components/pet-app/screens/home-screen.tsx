@@ -6,7 +6,6 @@ import {
   INK,
   STAGE_LABEL,
   STAGE_SIZE,
-  TERRACOTTA,
 } from "~/app/_components/pet-app/constants";
 import { PetPortrait } from "~/app/_components/pet-app/pet-visuals";
 import {
@@ -53,7 +52,6 @@ export function HomeScreen({
   isNeglected,
   growthProgressPct,
   growthRightLabel,
-  totalDue,
   decksCount,
   weeklyAccuracy,
   retiredPets,
@@ -66,7 +64,6 @@ export function HomeScreen({
   isNeglected: boolean;
   growthProgressPct: number;
   growthRightLabel: string;
-  totalDue: number;
   decksCount: number;
   weeklyAccuracy: number;
   retiredPets: RetiredPet[] | undefined;
@@ -119,6 +116,7 @@ export function HomeScreen({
         position: "relative",
         overflow: "hidden",
         flex: "1 1 auto",
+        minHeight: 0,
         backgroundImage: "url(/village-bg.png)",
         backgroundSize: "cover",
         backgroundPosition: "center 20%",
@@ -175,43 +173,34 @@ export function HomeScreen({
               <VoidEgg size={STAGE_SIZE.egg} onClick={onHatchNewEgg} />
             )}
           </div>
-          <div
-            style={{
-              textAlign: "center",
-              marginTop: 4,
-              background: "oklch(98% 0.03 90 / 0.9)",
-              padding: "6px 14px",
-              borderRadius: 14,
-              border: `2px solid ${CARD_LINE}`,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Baloo 2', sans-serif",
-                fontWeight: 700,
-                fontSize: 18,
-              }}
-            >
-              {hasSpecies
-                ? pet.hasCustomName
-                  ? `${pet.name} the ${speciesLabel}`
-                  : pet.name
-                : "A new arrival awaits"}
-            </div>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: "oklch(48% 0.04 255 / 0.65)",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}
-            >
-              {hasSpecies
-                ? `${STAGE_LABEL[pet.stage]} · ${pet.health}% health`
-                : "Ready when you are"}
-            </div>
-          </div>
+        </div>
+      </div>
+
+      <div
+        style={{
+          position: "relative",
+          zIndex: 4,
+          width: "fit-content",
+          margin: "0 auto",
+          textAlign: "center",
+          background: CARD_BG,
+          padding: "6px 14px",
+          borderRadius: 14,
+          border: `2px solid ${CARD_LINE}`,
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Baloo 2', sans-serif",
+            fontWeight: 700,
+            fontSize: 18,
+          }}
+        >
+          {hasSpecies
+            ? pet.hasCustomName
+              ? `${pet.name} the ${speciesLabel}`
+              : pet.name
+            : "A new arrival awaits"}
         </div>
       </div>
 
@@ -221,7 +210,7 @@ export function HomeScreen({
           position: "relative",
           zIndex: 3,
           maxWidth: 520,
-          margin: "-24px auto 0",
+          margin: "0 auto",
           background: CARD_BG,
           borderRadius: 28,
           padding: "26px 26px 24px",
@@ -233,7 +222,7 @@ export function HomeScreen({
           <StatBar
             label={`Growth · ${STAGE_LABEL[pet.stage]}`}
             value={growthProgressPct}
-            hue={42}
+            hue={97}
             rightLabel={growthRightLabel}
           />
           <StatBar label="Health" value={pet.health} hue={140} />
@@ -264,16 +253,16 @@ export function HomeScreen({
             padding: 15,
             border: "none",
             borderRadius: 18,
-            background: TERRACOTTA,
+            background: "#4A83A0",
             color: "oklch(98% 0.01 90)",
             fontFamily: "'Baloo 2', sans-serif",
             fontWeight: 700,
             fontSize: 16,
             cursor: "pointer",
-            boxShadow: "0 8px 20px oklch(70% 0.17 42 / 0.35)",
+            boxShadow: "0 8px 20px rgb(74 131 160 / 0.3)",
           }}
         >
-          {hasSpecies ? `Study now: ${totalDue} due` : "Choose your next companion"}
+          {hasSpecies ? "Study now" : "Choose your next companion"}
         </button>
 
         <div
