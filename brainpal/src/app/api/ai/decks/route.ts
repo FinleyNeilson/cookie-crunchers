@@ -137,8 +137,16 @@ export async function POST(request: Request) {
       uploadedIds.push(uploaded.id);
     }
 
+    const studyItemInstructions =
+      contentType === "flashcards"
+        ? "Create only flashcards. Set type to flashcard, options to null, and correctIndex to null for every item."
+        : contentType === "quizzes"
+          ? "Create only multiple-choice quiz questions. Set type to quiz, provide 2 to 4 plausible answer options, and set correctIndex to the zero-based index of the correct option. The back must contain the correct answer."
+          : "Create a useful mix of flashcards and multiple-choice quiz questions. Quiz questions must have 2 to 4 plausible options and a valid zero-based correctIndex; flashcards must have null options and correctIndex.";
+
     const prompt = [
-      `Create a study flashcard deck containing exactly ${cardCount} cards from the attached course material.`,
+      `Create a study deck containing exactly ${cardCount} items from the attached course material.`,
+      studyItemInstructions,
       "Focus only on the highest-value concepts needed to understand and remember the material.",
       "Requirements: Each flashcard tests exactly ONE fact or concept. Questions should be clear, specific, and unambiguous. Answers must be as short as possible while remaining correct. Prefer answers that are 1–10 words (avoid full sentences unless necessary). Do not combine multiple facts into one card. Use active recall questions rather than recognition or trivia. Avoid duplicate or overlapping cards. Each card must make sense without referring back to the source material. If a concept is complex, split it into multiple simple flashcards instead of one large card. Prefer definitions, key relationships, causes, effects, formulas, and essential facts. Do not include unnecessary explanations or examples in the answer. A good flashcard: Q: What is the powerhouse of the cell? A: Mitochondrion. Bad flashcard: Q: Explain everything about mitochondria. A: A long paragraph...",
       instructions ? `Learner instructions: ${instructions}` : "",
