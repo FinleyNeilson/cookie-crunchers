@@ -99,7 +99,7 @@ export function StageUpScreen({
             animation: "petBounce 1.8s ease-in-out infinite",
           }}
         >
-          <PetFace species={species} size={size} />
+          <PetFace species={species} size={size} stage={stage} />
         </div>
       </div>
       <div style={messageStyle}>

@@ -1,6 +1,6 @@
 import { type RouterOutputs } from "~/trpc/react";
 
-export type Species = "bunny" | "frog" | "monkey" | "oldman";
+export type Species = "bunny" | "frog" | "monkey" | "dumpling";
 export type LifeStage = "egg" | "child" | "teen" | "adult";
 export type Screen = "home" | "decks" | "review" | "results" | "deckDetail";
 export type Grade = "again" | "hard" | "good" | "easy";

@@ -153,7 +153,7 @@ export function HomeScreen({
         <div
           style={{
             position: "absolute",
-            bottom: 58,
+            bottom: 140,
             // Centered via left/right/margin instead of the usual
             // left:50%+translateX(-50%) trick — that trick sets `transform`,
             // which the petBounce animation below also drives every frame,
@@ -191,7 +191,7 @@ export function HomeScreen({
             // this sits higher than the avatar box's true bottom edge to
             // land right under the visible character instead of under the
             // empty space beneath it.
-            bottom: 48,
+            bottom: 75,
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 4,

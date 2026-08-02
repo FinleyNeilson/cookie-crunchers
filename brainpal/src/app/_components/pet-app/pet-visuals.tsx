@@ -1,5 +1,13 @@
-import { SPECIES, SPECIES_IMAGE } from "~/app/_components/pet-app/constants";
-import { type PetState, type Species } from "~/app/_components/pet-app/types";
+import {
+  SPECIES,
+  SPECIES_IMAGE,
+  SPECIES_STAGE_IMAGE,
+} from "~/app/_components/pet-app/constants";
+import {
+  type LifeStage,
+  type PetState,
+  type Species,
+} from "~/app/_components/pet-app/types";
 
 export function Cloud({
   top,
@@ -60,23 +68,34 @@ export function PetPortrait({ pet, size }: { pet: PetState; size: number }) {
   return (
     // Non-egg stage guarantees a species was already chosen — see the
     // PetState.species comment.
-    <PetFace species={pet.species!} size={size} />
+    <PetFace species={pet.species!} size={size} stage={pet.stage} />
   );
 }
 
 // Every species is hand-drawn sprite art (public/pets/*.svg) — no more
 // CSS-drawn fallback face, so there's no `color`/`mood` to react to here.
+// `stage` is optional because several callers (retired-pet portraits,
+// species-picker previews) always want the species' default/grown-up look
+// regardless of any particular pet's actual stage — omitting it (or
+// passing "adult"/"egg") falls back to SPECIES_IMAGE.
 export function PetFace({
   species,
   size,
+  stage,
 }: {
   species: Species;
   size: number;
+  stage?: LifeStage;
 }) {
+  const stageImage =
+    stage === "child" || stage === "teen"
+      ? SPECIES_STAGE_IMAGE[species]?.[stage]
+      : undefined;
+
   return (
     <div style={{ position: "relative", width: size, height: size }}>
       <img
-        src={SPECIES_IMAGE[species]}
+        src={stageImage ?? SPECIES_IMAGE[species]}
         alt={`${SPECIES[species].label} pet`}
         style={{
           width: "100%",

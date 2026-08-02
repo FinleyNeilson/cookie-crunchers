@@ -125,7 +125,10 @@ export function NamePetScreen({
           animation: "petBounce 2.6s ease-in-out infinite",
         }}
       >
-        <PetFace species={species} size={120} />
+        {/* This screen only ever appears right at the hatch moment — see
+        the "stage !== egg && !name" gate in signed-in-pet-app.tsx — so the
+        pet is always freshly at the "child" stage here. */}
+        <PetFace species={species} size={120} stage="child" />
       </div>
       <div
         style={{

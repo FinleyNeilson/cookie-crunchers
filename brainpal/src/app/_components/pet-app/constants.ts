@@ -55,15 +55,32 @@ export const SPECIES: Record<Species, { label: string; color: string }> = {
   bunny: { label: "Bunny", color: INK },
   frog: { label: "Frog", color: LEAF },
   monkey: { label: "Monkey", color: TERRACOTTA_DEEP },
-  oldman: { label: "Old Man", color: GOLDEN },
+  dumpling: { label: "Dumpling", color: GOLDEN },
 };
 
 // Every species has hand-drawn sprite art — see PetFace in pet-visuals.tsx.
+// This is the "grown up" look — shown for the adult stage, and as the
+// fallback for any stage a species doesn't have dedicated art for below
+// (bunny doesn't have separate child/teen art yet, so it uses this at
+// every stage, same as before per-stage art existed).
 export const SPECIES_IMAGE: Record<Species, string> = {
   bunny: "/pets/bunny.svg",
   frog: "/pets/frog.svg",
   monkey: "/pets/monkey.svg",
-  oldman: "/pets/oldman.svg",
+  dumpling: "/pets/dumpling.svg",
+};
+
+// Earlier-growth-stage art overrides — species without an entry (or
+// without a specific stage's key) fall back to SPECIES_IMAGE instead.
+export const SPECIES_STAGE_IMAGE: Partial<
+  Record<Species, Partial<Record<"child" | "teen", string>>>
+> = {
+  frog: { child: "/pets/frog-child.svg", teen: "/pets/frog-teen.svg" },
+  monkey: { child: "/pets/monkey-child.svg", teen: "/pets/monkey-teen.svg" },
+  dumpling: {
+    child: "/pets/dumpling-child.svg",
+    teen: "/pets/dumpling-teen.svg",
+  },
 };
 
 // SM-2 quality grade (0-5) each review button maps to — see server/srs/sm2.ts.
