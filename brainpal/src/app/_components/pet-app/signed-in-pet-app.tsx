@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { AIDeckMaker } from "~/app/_components/ai-deck-maker";
 import { LoadingSpinner } from "~/app/_components/loading-spinner";
+import { MusicPlayer } from "~/app/_components/music-player";
 
 import {
   GRADE_TO_SM2,
@@ -360,7 +361,12 @@ export function SignedInPetApp() {
       return;
     }
 
-    await advanceSession({ queue, nextIndex, newSessionCorrect, newSessionTotal });
+    await advanceSession({
+      queue,
+      nextIndex,
+      newSessionCorrect,
+      newSessionTotal,
+    });
   }
 
   if (decksQuery.isPending || petQuery.isPending) {
@@ -492,6 +498,7 @@ export function SignedInPetApp() {
       <TopNav navItems={navItems} screen={screen} setScreen={setScreen} />
 
       <Toast message={toastMsg} />
+      <MusicPlayer />
 
       {isMakingWithAI && (
         <AIDeckMaker
