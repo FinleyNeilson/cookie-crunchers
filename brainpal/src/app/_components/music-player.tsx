@@ -78,6 +78,7 @@ export function MusicPlayer() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeNodesRef = useRef<AudioNode[]>([]);
   const stepRef = useRef(0);
+  const startAttemptRef = useRef(0);
 
   function clearAudio() {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -134,6 +135,7 @@ export function MusicPlayer() {
   }
 
   async function startAudio(trackIndex = selectedTrack) {
+    const attempt = ++startAttemptRef.current;
     clearAudio();
     const AudioContextClass = window.AudioContext;
     const context = audioContextRef.current ?? new AudioContextClass();
@@ -149,14 +151,20 @@ export function MusicPlayer() {
       0.04,
     );
     await context.resume();
+    if (attempt !== startAttemptRef.current) return false;
+    if (context.state !== "running") {
+      throw new Error("Audio playback is waiting for user interaction.");
+    }
     stepRef.current = 0;
     const track = TRACKS[trackIndex]!;
     scheduleChord(track);
     timerRef.current = setInterval(() => scheduleChord(track), track.tempo);
     setIsPlaying(true);
+    return true;
   }
 
   function pauseAudio() {
+    startAttemptRef.current += 1;
     clearAudio();
     setIsPlaying(false);
   }
@@ -174,10 +182,49 @@ export function MusicPlayer() {
     }
   }, [volume]);
 
+  useEffect(() => {
+    let disposed = false;
+
+    function removeUnlockListeners() {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
+    }
+
+    function beginPlayback() {
+      void startAudio()
+        .then((started) => {
+          if (started && !disposed) removeUnlockListeners();
+        })
+        .catch(() => {
+          // Audible autoplay can be blocked until the first interaction.
+          // The listeners below retry without making the user find Play.
+        });
+    }
+
+    function unlockAudio() {
+      beginPlayback();
+    }
+
+    beginPlayback();
+    window.addEventListener("pointerdown", unlockAudio);
+    window.addEventListener("keydown", unlockAudio);
+
+    return () => {
+      disposed = true;
+      removeUnlockListeners();
+    };
+    // Playback should initialize once. Track and volume changes are handled
+    // by their existing controls/effect after initialization.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(
     () => () => {
       clearAudio();
-      void audioContextRef.current?.close();
+      const context = audioContextRef.current;
+      audioContextRef.current = null;
+      masterGainRef.current = null;
+      void context?.close();
     },
     [],
   );

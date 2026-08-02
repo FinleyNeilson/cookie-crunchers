@@ -368,11 +368,12 @@ export function DeckDetailScreen({
               <div
                 style={{
                   display: "flex",
+                  alignItems: "center",
                   justifyContent: "space-between",
                   gap: 12,
                 }}
               >
-                <div>
+                <div style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
                   <div
                     style={{
                       display: "inline-block",
@@ -424,11 +425,24 @@ export function DeckDetailScreen({
                     </div>
                   )}
                 </div>
-                <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    flexShrink: 0,
+                    marginLeft: "auto",
+                  }}
+                >
                   <button
                     onClick={() => startEditCard(card)}
                     style={{
-                      padding: "8px 14px",
+                      width: 76,
+                      height: 38,
+                      padding: 0,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       border: `2px solid ${CARD_LINE}`,
                       borderRadius: 10,
                       background: "transparent",
@@ -443,7 +457,12 @@ export function DeckDetailScreen({
                   <button
                     onClick={() => void handleDeleteCard(card.id)}
                     style={{
-                      padding: "8px 14px",
+                      width: 76,
+                      height: 38,
+                      padding: 0,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       border: `2px solid ${CARD_LINE}`,
                       borderRadius: 10,
                       background: "transparent",

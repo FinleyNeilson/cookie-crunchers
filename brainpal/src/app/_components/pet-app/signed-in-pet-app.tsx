@@ -203,10 +203,12 @@ export function SignedInPetApp() {
   async function handleCreateDeck() {
     const name = newDeckName.trim();
     if (!name) return;
-    await createDeck.mutateAsync({ name });
+    const deck = await createDeck.mutateAsync({ name });
     setNewDeckName("");
     setIsCreatingDeck(false);
     await utils.deck.list.invalidate();
+    toast(`Created “${deck.name}” — add your first card!`);
+    manageDeck(deck.id);
   }
 
   async function startReview(deckId: string, practice = false) {
@@ -356,7 +358,12 @@ export function SignedInPetApp() {
       return;
     }
 
-    await advanceSession({ queue, nextIndex, newSessionCorrect, newSessionTotal });
+    await advanceSession({
+      queue,
+      nextIndex,
+      newSessionCorrect,
+      newSessionTotal,
+    });
   }
 
   if (decksQuery.isPending || petQuery.isPending) {
@@ -573,7 +580,7 @@ export function SignedInPetApp() {
             setIsCreatingDeck={setIsCreatingDeck}
             newDeckName={newDeckName}
             setNewDeckName={setNewDeckName}
-            onCreateDeck={() => void handleCreateDeck()}
+            onCreateDeck={handleCreateDeck}
             isCreatingDeckPending={createDeck.isPending}
             onStartReview={(deckId) => void startReview(deckId)}
             onPractice={(deckId) => void startReview(deckId, true)}
