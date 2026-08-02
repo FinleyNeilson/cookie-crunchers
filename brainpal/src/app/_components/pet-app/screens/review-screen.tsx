@@ -26,7 +26,7 @@ export function ReviewScreen({
   flipped: boolean;
   setFlipped: React.Dispatch<React.SetStateAction<boolean>>;
   isSubmittingReview: boolean;
-  onGrade: (quality: Grade) => void;
+  onGrade: (quality: Grade) => Promise<void>;
   onBack: () => void;
 }) {
   const currentCard = reviewCards[reviewIndex];
@@ -44,11 +44,11 @@ export function ReviewScreen({
     setSelectedOption(null);
   }, [currentCard?.id]);
 
-  function submitGrade(quality: Grade) {
+  async function submitGrade(quality: Grade) {
     if (isSubmittingReview) return;
+    await onGrade(quality);
     setFlipped(false);
     setSelectedOption(null);
-    onGrade(quality);
   }
 
   return (
@@ -199,7 +199,7 @@ export function ReviewScreen({
         <button
           type="button"
           disabled={isSubmittingReview}
-          onClick={() => submitGrade(quizCorrect ? "good" : "again")}
+          onClick={() => void submitGrade(quizCorrect ? "good" : "again")}
           className="quiz-continue-button"
         >
           Continue
@@ -219,7 +219,7 @@ export function ReviewScreen({
             disabled={isSubmittingReview}
             onClick={(e) => {
               e.stopPropagation();
-              submitGrade("again");
+              void submitGrade("again");
             }}
             style={{
               padding: 16,
@@ -239,7 +239,7 @@ export function ReviewScreen({
             disabled={isSubmittingReview}
             onClick={(e) => {
               e.stopPropagation();
-              submitGrade("hard");
+              void submitGrade("hard");
             }}
             style={{
               padding: 16,
@@ -259,7 +259,7 @@ export function ReviewScreen({
             disabled={isSubmittingReview}
             onClick={(e) => {
               e.stopPropagation();
-              submitGrade("good");
+              void submitGrade("good");
             }}
             style={{
               padding: 16,
@@ -279,7 +279,7 @@ export function ReviewScreen({
             disabled={isSubmittingReview}
             onClick={(e) => {
               e.stopPropagation();
-              submitGrade("easy");
+              void submitGrade("easy");
             }}
             style={{
               padding: 16,

@@ -40,7 +40,7 @@ const generatedDeckSchema = z.object({
         }),
     )
     .min(1)
-    .max(60),
+    .max(100),
 });
 
 type OpenAIFile = { id: string };
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
       ? contentTypeValue
       : "mixed";
   const cardCount = Number.isFinite(requestedCount)
-    ? Math.min(60, Math.max(5, Math.round(requestedCount)))
+    ? Math.min(100, Math.max(5, Math.round(requestedCount)))
     : 20;
 
   if (files.length === 0) return error("Choose at least one file.", 400);
@@ -188,7 +188,7 @@ export async function POST(request: Request) {
                   cards: {
                     type: "array",
                     minItems: 1,
-                    maxItems: 60,
+                    maxItems: 100,
                     items: {
                       type: "object",
                       additionalProperties: false,
