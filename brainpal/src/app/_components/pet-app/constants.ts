@@ -30,10 +30,10 @@ export const STAGE_LABEL: Record<LifeStage, string> = {
 };
 
 export const STAGE_SIZE: Record<LifeStage, number> = {
-  egg: 250,
-  child: 155,
-  teen: 200,
-  adult: 235,
+  egg: 300,
+  child: 200,
+  teen: 260,
+  adult: 300,
 };
 
 // Mirrors STAGE_THRESHOLDS in server/pet/growth.ts — needed here purely to

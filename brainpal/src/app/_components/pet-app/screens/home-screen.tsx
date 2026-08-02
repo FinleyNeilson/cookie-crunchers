@@ -137,69 +137,84 @@ export function HomeScreen({
         style={{
           position: "relative",
           zIndex: 2,
-          display: "flex",
-          alignItems: "flex-end",
-          justifyContent: "center",
-          paddingTop: 70,
-          minHeight: 360,
-          // Only the centered avatar/name card (below) has anything to
-          // click — the rest of this row is empty, full-width flex space
-          // that would otherwise sit above (and swallow clicks meant for)
-          // the retired-pet sprites at zIndex 1.
+          // A fixed height (rather than flex-sizing to content) means the
+          // study card below always lands in the same place regardless of
+          // the current pet's size/stage or the name-tag's height — both
+          // are positioned absolutely inside this box instead of pushing
+          // on document flow.
+          height: 430,
+          // Only the avatar/name-tag (below) has anything to click — the
+          // rest of this row is empty space that would otherwise sit above
+          // (and swallow clicks meant for) the retired-pet sprites at
+          // zIndex 1.
           pointerEvents: "none",
         }}
       >
         <div
           style={{
+            position: "absolute",
+            bottom: 58,
+            // Centered via left/right/margin instead of the usual
+            // left:50%+translateX(-50%) trick — that trick sets `transform`,
+            // which the petBounce animation below also drives every frame,
+            // silently overwriting the centering offset each tick and
+            // dragging the pet off to the right.
+            left: 0,
+            right: 0,
+            margin: "0 auto",
+            // Sized to the pet's actual current stage rather than a fixed
+            // box big enough for the largest stage — the species art has
+            // a lot of built-in padding within its own square already, so
+            // an oversized wrapper on top of that doubled up into a big
+            // empty gap between the visible character and the name-tag
+            // below it.
+            width: hasSpecies ? STAGE_SIZE[pet.stage] : STAGE_SIZE.egg,
+            height: hasSpecies ? STAGE_SIZE[pet.stage] : STAGE_SIZE.egg,
             display: "flex",
-            flexDirection: "column",
             alignItems: "center",
+            justifyContent: "center",
+            animation: "petBounce 2.6s ease-in-out infinite",
+          }}
+        >
+          {hasSpecies ? (
+            <PetPortrait pet={pet} size={STAGE_SIZE[pet.stage]} />
+          ) : (
+            <VoidEgg size={STAGE_SIZE.egg} onClick={onHatchNewEgg} />
+          )}
+        </div>
+
+        <div
+          style={{
+            position: "absolute",
+            // The species art has some built-in transparent padding below
+            // the character's feet (baked into the source SVG itself), so
+            // this sits higher than the avatar box's true bottom edge to
+            // land right under the visible character instead of under the
+            // empty space beneath it.
+            bottom: 48,
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 4,
+            width: "fit-content",
+            textAlign: "center",
+            background: CARD_BG,
+            padding: "6px 14px",
+            borderRadius: 14,
+            border: `2px solid ${CARD_LINE}`,
           }}
         >
           <div
             style={{
-              position: "relative",
-              width: 290,
-              height: 290,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              animation: "petBounce 2.6s ease-in-out infinite",
+              fontFamily: "'Baloo 2', sans-serif",
+              fontWeight: 700,
+              fontSize: 18,
             }}
           >
-            {hasSpecies ? (
-              <PetPortrait pet={pet} size={STAGE_SIZE[pet.stage]} />
-            ) : (
-              <VoidEgg size={STAGE_SIZE.egg} onClick={onHatchNewEgg} />
-            )}
-          </div>
-
-          <div
-            style={{
-              position: "relative",
-              zIndex: 4,
-              marginTop: 4,
-              width: "fit-content",
-              textAlign: "center",
-              background: CARD_BG,
-              padding: "6px 14px",
-              borderRadius: 14,
-              border: `2px solid ${CARD_LINE}`,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Baloo 2', sans-serif",
-                fontWeight: 700,
-                fontSize: 18,
-              }}
-            >
-              {hasSpecies
-                ? pet.hasCustomName
-                  ? `${pet.name} the ${speciesLabel}`
-                  : pet.name
-                : "A new arrival awaits"}
-            </div>
+            {hasSpecies
+              ? pet.hasCustomName
+                ? `${pet.name} the ${speciesLabel}`
+                : pet.name
+              : "A new arrival awaits"}
           </div>
         </div>
       </div>

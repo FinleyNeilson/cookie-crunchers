@@ -26,7 +26,12 @@ export function RetiredPetPortrait({
         <img
           src="/pets/ghost.svg"
           alt="Ghost"
-          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            objectPosition: "bottom",
+          }}
         />
       </div>
     );

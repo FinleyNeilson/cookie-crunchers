@@ -44,6 +44,11 @@ export function Egg({ size = 108 }: { size?: number }) {
           width: "100%",
           height: "100%",
           objectFit: "contain",
+          // The source art is a wide canvas (2360x1640) letterboxed into
+          // this square box — anchoring to the bottom instead of centering
+          // keeps the character sitting on the "ground" instead of
+          // floating with a gap beneath it.
+          objectPosition: "bottom",
         }}
       />
     </div>
@@ -73,7 +78,14 @@ export function PetFace({
       <img
         src={SPECIES_IMAGE[species]}
         alt={`${SPECIES[species].label} pet`}
-        style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          // See the matching comment in Egg — the source art is a wide
+          // canvas letterboxed into this square box.
+          objectPosition: "bottom",
+        }}
       />
     </div>
   );
