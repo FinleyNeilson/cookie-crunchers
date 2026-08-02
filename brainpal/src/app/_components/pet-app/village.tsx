@@ -42,37 +42,82 @@ export function RetiredPetPortrait({
   );
 }
 
+// Measured position of the study card relative to the scene container it
+// shares with RetiredPetSprite (see HomeScreen) — used to keep sprites out
+// from behind it regardless of window size, instead of guessing fixed
+// pixel bands that only hold up at one viewport height.
+export type SceneBounds = {
+  containerWidth: number;
+  cardTop: number;
+  cardBottom: number;
+  cardLeft: number;
+  cardRight: number;
+};
+
 // Ambient background sprite on the home/village scene — deterministically
 // scattered (stable per pet.id), subtle enough to read as background
 // rather than competing with the current pet in the foreground.
 export function RetiredPetSprite({
   pet,
+  bounds,
   onClick,
 }: {
   pet: RetiredPet;
+  bounds: SceneBounds | null;
   onClick: () => void;
 }) {
   const h = hashString(pet.id);
   const isGhost = pet.retirementReason === "died";
-  // The foreground layers sit above sprites, allowing pets to be scattered
-  // across the whole illustrated hill without covering the active pet/card.
-  const horizontalOffset = ((h >> 4) % 1000) / 1000;
-  const leftPct = 4 + horizontalOffset * 92;
-  // Retired pets use the lower hill area, below the study card (which sits
-  // roughly in the 403-714px band, centered, atop this same container —
-  // see HomeScreen) so they don't spawn hidden underneath it. Ghosts may
-  // also drift into the sky, above the card.
-  const verticalOffset = ((h >> 10) % 1000) / 1000;
-  const topPx =
-    isGhost ? 80 + verticalOffset * 620 : 740 + verticalOffset * 140;
-  const size = 64 + (((h >> 20) % 1000) / 1000) * 24;
+  const size = 64 + ((h % 1000) / 1000) * 24;
+
+  // Nothing measured yet (pre-layout) — skip this frame rather than flash
+  // a sprite in the wrong place.
+  if (!bounds) return null;
+
+  let leftPx: number;
+  let topPx: number;
+
+  if (isGhost) {
+    // Ghosts drift through the sky, above the card, so they're always
+    // clear of it regardless of window height.
+    const skyBottom = Math.max(120, bounds.cardTop - 40);
+    leftPx = 8 + (((h >>> 12) % 1000) / 1000) * (bounds.containerWidth - size - 16);
+    topPx = 40 + (((h >>> 18) % 1000) / 1000) * (skyBottom - 40);
+  } else {
+    // Retired pets only ever spawn in the hill visible directly beside the
+    // study card — never above, below, or behind it — because that's the
+    // one band guaranteed to be on-screen at any window height: it's part
+    // of the card's own row, which the app always has room to show.
+    const pad = 12;
+    // Cap how far a sprite can drift from the card's edge — on a wide
+    // window the gutters are huge, and scattering proportionally across
+    // all of it reads as "floating in the corners" instead of "next to
+    // the card".
+    const maxOffset = 200;
+    const leftGutter = bounds.cardLeft - pad * 2;
+    const rightGutter = bounds.containerWidth - bounds.cardRight - pad * 2;
+    const useRightSide =
+      rightGutter >= size && (leftGutter < size || h % 2 === 0);
+
+    if (!useRightSide && leftGutter < size) return null;
+    if (useRightSide && rightGutter < size) return null;
+
+    const gutterWidth = useRightSide ? rightGutter : leftGutter;
+    const offset = (((h >>> 12) % 1000) / 1000) * Math.min(gutterWidth - size, maxOffset);
+    leftPx = useRightSide
+      ? bounds.cardRight + pad + offset
+      : bounds.cardLeft - pad - size - offset;
+    topPx =
+      bounds.cardTop +
+      (((h >>> 18) % 1000) / 1000) * (bounds.cardBottom - bounds.cardTop - size);
+  }
 
   return (
     <button
       onClick={onClick}
       style={{
         position: "absolute",
-        left: `${leftPct}%`,
+        left: leftPx,
         top: topPx,
         zIndex: 1,
         border: "none",

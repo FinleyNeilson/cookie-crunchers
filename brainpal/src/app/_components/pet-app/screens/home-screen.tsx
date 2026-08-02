@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef, useState } from "react";
+
 import {
   CARD_BG,
   CARD_LINE,
@@ -12,7 +14,10 @@ import {
   type RetiredPet,
 } from "~/app/_components/pet-app/types";
 import { StatBar, StatTile } from "~/app/_components/pet-app/ui";
-import { RetiredPetSprite } from "~/app/_components/pet-app/village";
+import {
+  RetiredPetSprite,
+  type SceneBounds,
+} from "~/app/_components/pet-app/village";
 
 // Stands in for the replacement pet while awaiting a new egg (species
 // still null — see PetState.species) — deliberately not just another Egg
@@ -73,8 +78,43 @@ export function HomeScreen({
   onHatchNewEgg: () => void;
 }) {
   const hasSpecies = pet.species !== null;
+  const sceneRef = useRef<HTMLDivElement | null>(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const [bounds, setBounds] = useState<SceneBounds | null>(null);
+
+  // Retired-pet sprites are positioned relative to the study card's actual
+  // on-screen box (see village.tsx) rather than guessed pixel offsets, so
+  // they land beside it correctly at any window size instead of only
+  // working at one particular height.
+  useLayoutEffect(() => {
+    const measure = () => {
+      const scene = sceneRef.current;
+      const card = cardRef.current;
+      if (!scene || !card) return;
+      const sceneRect = scene.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      setBounds({
+        containerWidth: sceneRect.width,
+        cardTop: cardRect.top - sceneRect.top,
+        cardBottom: cardRect.bottom - sceneRect.top,
+        cardLeft: cardRect.left - sceneRect.left,
+        cardRight: cardRect.right - sceneRect.left,
+      });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (sceneRef.current) ro.observe(sceneRef.current);
+    if (cardRef.current) ro.observe(cardRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
   return (
     <div
+      ref={sceneRef}
       style={{
         position: "relative",
         overflow: "hidden",
@@ -90,6 +130,7 @@ export function HomeScreen({
         <RetiredPetSprite
           key={retired.id}
           pet={retired}
+          bounds={bounds}
           onClick={() => onSelectRetiredPet(retired)}
         />
       ))}
@@ -175,6 +216,7 @@ export function HomeScreen({
       </div>
 
       <div
+        ref={cardRef}
         style={{
           position: "relative",
           zIndex: 3,
