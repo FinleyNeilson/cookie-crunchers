@@ -182,42 +182,6 @@ export function MusicPlayer() {
     }
   }, [volume]);
 
-  useEffect(() => {
-    let disposed = false;
-
-    function removeUnlockListeners() {
-      window.removeEventListener("pointerdown", unlockAudio);
-      window.removeEventListener("keydown", unlockAudio);
-    }
-
-    function beginPlayback() {
-      void startAudio()
-        .then((started) => {
-          if (started && !disposed) removeUnlockListeners();
-        })
-        .catch(() => {
-          // Audible autoplay can be blocked until the first interaction.
-          // The listeners below retry without making the user find Play.
-        });
-    }
-
-    function unlockAudio() {
-      beginPlayback();
-    }
-
-    beginPlayback();
-    window.addEventListener("pointerdown", unlockAudio);
-    window.addEventListener("keydown", unlockAudio);
-
-    return () => {
-      disposed = true;
-      removeUnlockListeners();
-    };
-    // Playback should initialize once. Track and volume changes are handled
-    // by their existing controls/effect after initialization.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   useEffect(
     () => () => {
       clearAudio();
