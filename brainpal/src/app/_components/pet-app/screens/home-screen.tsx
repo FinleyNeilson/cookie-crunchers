@@ -121,7 +121,7 @@ export function HomeScreen({
         backgroundSize: "cover",
         backgroundPosition: "center 20%",
         backgroundRepeat: "no-repeat",
-        paddingBottom: 56,
+        paddingBottom: 20,
       }}
     >
       {retiredPets?.map((retired) => (
@@ -141,8 +141,10 @@ export function HomeScreen({
           // study card below always lands in the same place regardless of
           // the current pet's size/stage or the name-tag's height — both
           // are positioned absolutely inside this box instead of pushing
-          // on document flow.
-          height: 430,
+          // on document flow. Kept short enough (plus the reduced
+          // paddingBottom above) that the whole village screen fits one
+          // viewport without scrolling on ordinary laptop-height windows.
+          height: 280,
           // Only the avatar/name-tag (below) has anything to click — the
           // rest of this row is empty space that would otherwise sit above
           // (and swallow clicks meant for) the retired-pet sprites at
@@ -153,7 +155,7 @@ export function HomeScreen({
         <div
           style={{
             position: "absolute",
-            bottom: 140,
+            bottom: 90,
             // Centered via left/right/margin instead of the usual
             // left:50%+translateX(-50%) trick — that trick sets `transform`,
             // which the petBounce animation below also drives every frame,
@@ -191,7 +193,7 @@ export function HomeScreen({
             // this sits higher than the avatar box's true bottom edge to
             // land right under the visible character instead of under the
             // empty space beneath it.
-            bottom: 75,
+            bottom: 48,
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 4,
