@@ -623,16 +623,6 @@ export function SignedInPetApp() {
           display: "flex",
           flexDirection: "column",
           flex: screen === "home" ? "0 0 auto" : "1 1 auto",
-          // Contain overflow inside this panel instead of growing the page:
-          // minHeight: 0 lets a flex item actually shrink to its allotted
-          // space (its default min-height is "auto", which otherwise lets
-          // content force the flex item — and the whole page — taller).
-          // Without this, a screen with more content than fits pushes the
-          // body's own scrollbar in and out as you navigate, which shifts
-          // the nav bar sideways (scrollbar-gutter in globals.css only
-          // covers the *width* side of that; this covers not needing it).
-          minHeight: screen === "home" ? undefined : 0,
-          overflowY: screen === "home" ? undefined : "auto",
           padding: screen === "home" ? 0 : "32px clamp(20px,4vw,56px) 48px",
           maxWidth: 1120,
           margin: "0 auto",

@@ -6,10 +6,17 @@
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+html {
+  /* Reserves the scrollbar's width whether or not the page actually needs
+     to scroll, so switching between a short screen (e.g. the village) and
+     a tall one (e.g. deck editing) doesn't shift the nav bar sideways as
+     the scrollbar appears/disappears. */
+  scrollbar-gutter: stable;
+}
+
 body {
   margin: 0;
   background: #c5ebfa;
-  overflow: hidden;
 }
 
 .music-player-root {
