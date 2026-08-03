@@ -6,6 +6,19 @@
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+/* Hides the browser's own scrollbar chrome so it never reserves layout
+   width (which is what caused the nav bar to shift sideways between
+   scrollable and non-scrollable screens) — scrolling itself (wheel,
+   keyboard, touch, drag-select) is untouched, only its visual rendering is
+   suppressed. CustomScrollbar (see _components/custom-scrollbar.tsx)
+   draws a floating replacement on top instead. */
+html {
+  scrollbar-width: none; /* Firefox */
+}
+html::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
 body {
   margin: 0;
   background: #c5ebfa;

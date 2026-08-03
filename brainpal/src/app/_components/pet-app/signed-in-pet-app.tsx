@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { AIDeckMaker } from "~/app/_components/ai-deck-maker";
+import { CustomScrollbar } from "~/app/_components/custom-scrollbar";
 import { LoadingSpinner } from "~/app/_components/loading-spinner";
 import { MusicPlayer } from "~/app/_components/music-player";
 
@@ -559,6 +560,7 @@ export function SignedInPetApp() {
     >
       <TopNav navItems={navItems} screen={screen} setScreen={setScreen} />
 
+      <CustomScrollbar />
       <Toast message={toastMsg} />
       <MusicPlayer />
 
