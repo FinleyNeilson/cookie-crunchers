@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 
 const MIN_THUMB_HEIGHT = 40;
 const TRACK_INSET = 2; // px from the viewport's right edge
+// Matches .custom-scrollbar-thumb's width in globals.css — wide enough for
+// the hovered (thicker) state to render without clipping against the
+// wrapper's own box.
+const TRACK_WIDTH = 14;
 
 // Replaces the browser's own scrollbar (hidden globally — see globals.css)
 // with a floating overlay that never reserves layout width, so switching
@@ -99,13 +103,14 @@ export function CustomScrollbar() {
         position: "fixed",
         top: 0,
         right: TRACK_INSET,
-        width: 8,
+        width: TRACK_WIDTH,
         height: "100vh",
         zIndex: 999,
         pointerEvents: "none",
       }}
     >
       <div
+        className="custom-scrollbar-thumb"
         onPointerDown={(event) => {
           draggingRef.current = {
             startY: event.clientY,
@@ -116,12 +121,9 @@ export function CustomScrollbar() {
         style={{
           position: "absolute",
           top: metrics.thumbTop,
-          width: 8,
+          right: 0,
           height: metrics.thumbHeight,
-          borderRadius: 999,
-          background: "oklch(45% 0.06 255 / 0.35)",
           pointerEvents: "auto",
-          cursor: "pointer",
         }}
       />
     </div>

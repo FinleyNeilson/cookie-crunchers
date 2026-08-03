@@ -24,6 +24,23 @@ body {
   background: #c5ebfa;
 }
 
+/* See _components/custom-scrollbar.tsx — top/height/right come from inline
+   styles (computed from scroll position), everything static lives here so
+   :hover can be a real CSS rule instead of JS-managed state. */
+.custom-scrollbar-thumb {
+  width: 5px;
+  border-radius: 999px;
+  background: oklch(30% 0.05 255 / 0.55);
+  cursor: pointer;
+  transition:
+    width 0.15s ease,
+    background-color 0.15s ease;
+}
+.custom-scrollbar-thumb:hover {
+  width: 10px;
+  background: oklch(25% 0.06 255 / 0.7);
+}
+
 .music-player-root {
   position: fixed;
   right: 18px;

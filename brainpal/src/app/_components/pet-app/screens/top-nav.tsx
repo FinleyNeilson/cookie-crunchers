@@ -46,7 +46,8 @@ export function TopNav({
         borderBottom: `1px solid ${CARD_LINE}`,
       }}
     >
-      <div
+      <button
+        onClick={() => setScreen("home")}
         style={{
           display: "flex",
           alignItems: "center",
@@ -57,11 +58,24 @@ export function TopNav({
           color: INK,
           whiteSpace: "nowrap",
           justifySelf: "start",
+          border: "none",
+          background: "transparent",
+          padding: 0,
+          cursor: "pointer",
+          // Otherwise a click that lands slightly off the icon/text still
+          // selects it as text, which looks like a mis-click rather than
+          // navigation.
+          userSelect: "none",
         }}
       >
-        <img src="/pets/egg.svg" alt="" style={{ width: 48, height: "auto" }} />
+        <img
+          src="/pets/egg.svg"
+          alt=""
+          style={{ width: 48, height: "auto", userSelect: "none" }}
+          draggable={false}
+        />
         Spaced Eggs
-      </div>
+      </button>
       <div
         style={{
           display: "flex",
