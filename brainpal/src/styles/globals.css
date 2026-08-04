@@ -456,9 +456,9 @@ body {
 }
 
 .quiz-review-card {
-  min-height: 340px;
-  margin-top: 18px;
-  padding: 28px;
+  min-height: 260px;
+  margin-top: 12px;
+  padding: 20px;
   border: 2px solid #d2e3ec;
   border-radius: 28px;
   background: #eaf5fc;
@@ -467,8 +467,8 @@ body {
 }
 .quiz-options {
   display: grid;
-  gap: 10px;
-  margin-top: 24px;
+  gap: 8px;
+  margin-top: 14px;
   text-align: left;
 }
 .quiz-option {
@@ -476,7 +476,7 @@ body {
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 13px 15px;
+  padding: 10px 14px;
   border: 2px solid #78a9da;
   border-radius: 14px;
   background: white;
@@ -522,8 +522,8 @@ body {
   display: flex;
   justify-content: center;
   gap: 7px;
-  margin-top: 16px;
-  padding: 11px;
+  margin-top: 10px;
+  padding: 9px;
   border-radius: 12px;
   font-size: 13px;
 }
@@ -537,8 +537,8 @@ body {
 }
 .quiz-continue-button {
   width: 100%;
-  margin-top: 16px;
-  padding: 14px;
+  margin-top: 10px;
+  padding: 12px;
   border: 0;
   border-radius: 15px;
   background: #101311;

@@ -58,6 +58,7 @@ export function HomeScreen({
   onSelectRetiredPet,
   onStudyNow,
   onHatchNewEgg,
+  onNamePet,
 }: {
   pet: PetState;
   speciesLabel: string;
@@ -73,8 +74,13 @@ export function HomeScreen({
   // when the player chose "Return to village" over "Find a new egg" and is
   // now looking at the replacement egg waiting to be hatched.
   onHatchNewEgg: () => void;
+  // A pet can stay unnamed indefinitely (naming is offered, not forced —
+  // see signed-in-pet-app.tsx's "namePet" screen), so this is how the
+  // player gets back into that flow whenever they're ready.
+  onNamePet: () => void;
 }) {
   const hasSpecies = pet.species !== null;
+  const needsNaming = hasSpecies && pet.stage !== "egg" && !pet.hasCustomName;
   const sceneRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [bounds, setBounds] = useState<SceneBounds | null>(null);
@@ -144,7 +150,7 @@ export function HomeScreen({
           // on document flow. Kept short enough (plus the reduced
           // paddingBottom above) that the whole village screen fits one
           // viewport without scrolling on ordinary laptop-height windows.
-          height: 280,
+          height: 400,
           // Only the avatar/name-tag (below) has anything to click — the
           // rest of this row is empty space that would otherwise sit above
           // (and swallow clicks meant for) the retired-pet sprites at
@@ -155,7 +161,7 @@ export function HomeScreen({
         <div
           style={{
             position: "absolute",
-            bottom: 90,
+            bottom: 140,
             // Centered via left/right/margin instead of the usual
             // left:50%+translateX(-50%) trick — that trick sets `transform`,
             // which the petBounce animation below also drives every frame,
@@ -193,7 +199,7 @@ export function HomeScreen({
             // this sits higher than the avatar box's true bottom edge to
             // land right under the visible character instead of under the
             // empty space beneath it.
-            bottom: 48,
+            bottom: 98,
             left: "50%",
             transform: "translateX(-50%)",
             zIndex: 4,
@@ -203,21 +209,49 @@ export function HomeScreen({
             padding: "6px 14px",
             borderRadius: 14,
             border: `2px solid ${CARD_LINE}`,
+            // Naming is optional (see onNamePet) — a hatched-but-unnamed
+            // pet can wander the village forever, so this is the one
+            // permanent way back into that flow, not just a one-time
+            // prompt. Everything else in this row has pointerEvents:none
+            // (see the wrapping row above), so this needs its own opt-in.
+            pointerEvents: needsNaming ? "auto" : "none",
           }}
         >
-          <div
-            style={{
-              fontFamily: "'Baloo 2', sans-serif",
-              fontWeight: 700,
-              fontSize: 18,
-            }}
-          >
-            {hasSpecies
-              ? pet.hasCustomName
-                ? `${pet.name} the ${speciesLabel}`
-                : pet.name
-              : "A new arrival awaits"}
-          </div>
+          {needsNaming ? (
+            <button
+              onClick={onNamePet}
+              style={{
+                border: "none",
+                background: "transparent",
+                padding: 0,
+                margin: 0,
+                cursor: "pointer",
+                fontFamily: "'Baloo 2', sans-serif",
+                fontWeight: 700,
+                fontSize: 18,
+                color: "inherit",
+                textDecoration: "underline",
+                textDecorationStyle: "dotted",
+                textUnderlineOffset: 3,
+              }}
+            >
+              {pet.name}
+            </button>
+          ) : (
+            <div
+              style={{
+                fontFamily: "'Baloo 2', sans-serif",
+                fontWeight: 700,
+                fontSize: 18,
+              }}
+            >
+              {hasSpecies
+                ? pet.hasCustomName
+                  ? `${pet.name} the ${speciesLabel}`
+                  : pet.name
+                : "A new arrival awaits"}
+            </div>
+          )}
         </div>
       </div>
 

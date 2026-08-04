@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { AIDeckMaker } from "~/app/_components/ai-deck-maker";
 import { CustomScrollbar } from "~/app/_components/custom-scrollbar";
@@ -95,6 +95,7 @@ export function SignedInPetApp() {
   const [screen, setScreen] = useState<Screen>("home");
   const [toastMsg, setToastMsg] = useState<string | false>(false);
   const [reviewCards, setReviewCards] = useState<ReviewCard[]>([]);
+  const [reviewDeckName, setReviewDeckName] = useState("");
   const [reviewIndex, setReviewIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [sessionCorrect, setSessionCorrect] = useState(0);
@@ -104,6 +105,18 @@ export function SignedInPetApp() {
   const [stageAtSessionStart, setStageAtSessionStart] =
     useState<LifeStage>("egg");
   const [results, setResults] = useState<SessionResults | null>(null);
+  // Graduating (reaching "adult") retires the pet being studied and spawns
+  // a blank replacement immediately, server-side — unlike an ordinary
+  // stage-up, there's no "current pet" left afterward to keep comparing
+  // against. A ref (not state) because it's written mid-session by grade()
+  // and only ever read once, at the end of the same session, by
+  // advanceSession — it never needs to trigger a render on its own.
+  const pendingGraduationRef = useRef<{
+    petName: string;
+    species: Species;
+    health: number;
+    growthPoints: number;
+  } | null>(null);
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [managingDeckId, setManagingDeckId] = useState<string | null>(null);
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
@@ -250,7 +263,12 @@ export function SignedInPetApp() {
       includeNotDue: practice,
     });
     if (due.length === 0) return;
+    // Guards against a stray graduation from a session that ended some
+    // other way (e.g. the pet died before advanceSession could consume
+    // it) leaking into this new one.
+    pendingGraduationRef.current = null;
     setReviewCards(due);
+    setReviewDeckName(decksQuery.data?.find((d) => d.id === deckId)?.name ?? "");
     setReviewIndex(0);
     setFlipped(false);
     setSessionCorrect(0);
@@ -283,42 +301,95 @@ export function SignedInPetApp() {
   }) {
     if (nextIndex >= queue.length) {
       const accuracy = Math.round((newSessionCorrect / newSessionTotal) * 100);
+      const graduation = pendingGraduationRef.current;
 
-      await utils.pet.get.invalidate();
-      const petResult = await utils.pet.get.fetch();
+      // A graduation earlier in this session already retired the pet being
+      // studied and replaced it with a blank egg — fetching pet.get now
+      // would report the replacement's stats (fresh health, zero growth),
+      // not the deltas this session actually earned. Use the snapshot
+      // captured at the moment of graduation instead; otherwise fetch as
+      // normal.
+      let finalHealth: number;
+      let finalGrowth: number;
+      let finalStage: LifeStage;
+      if (graduation) {
+        finalHealth = graduation.health;
+        finalGrowth = graduation.growthPoints;
+        finalStage = "adult";
+      } else {
+        await utils.pet.get.invalidate();
+        const petResult = await utils.pet.get.fetch();
+        finalHealth = petResult.health;
+        finalGrowth = petResult.growthPoints;
+        finalStage = petResult.stage;
+      }
       void utils.deck.list.invalidate();
 
-      const petName = petDisplayName(
-        petQuery.data?.name,
-        petQuery.data?.species as Species | null | undefined,
-      );
+      const petName =
+        graduation?.petName ??
+        petDisplayName(
+          petQuery.data?.name,
+          petQuery.data?.species as Species | null | undefined,
+        );
       const message =
         accuracy >= 80
           ? `${petName} is thriving! Great study session.`
           : accuracy >= 50
             ? `${petName} appreciates the effort, keep it up.`
             : `${petName} needs a bit more practice tomorrow.`;
+      // A graduation always retires the pet outright regardless of where it
+      // started, so "hatched" (needs a name) only ever applies to the
+      // pet that's still actually around at the end of the session.
+      const hatched =
+        !graduation && stageAtSessionStart === "egg" && finalStage !== "egg";
 
       setResults({
         correct: newSessionCorrect,
         total: newSessionTotal,
         accuracy,
-        healthDelta: petResult.health - healthAtSessionStart,
-        growthDelta: petResult.growthPoints - growthAtSessionStart,
+        healthDelta: finalHealth - healthAtSessionStart,
+        growthDelta: finalGrowth - growthAtSessionStart,
         celebrate: accuracy >= 60,
         message,
+        stageAtStart: stageAtSessionStart,
+        growthAtStart: growthAtSessionStart,
+        growthAtEnd: finalGrowth,
+        healthAtStart: healthAtSessionStart,
+        healthAtEnd: finalHealth,
+        hatched,
+        graduated: !!graduation,
       });
       setScreen("results");
 
-      // Stage-ups (e.g. hatching out of the egg) celebrate once the whole
-      // session wraps up, rather than interrupting mid-deck the instant a
-      // card happens to cross the threshold — this screen sits in front of
-      // the results screen just set above, and dismissing it reveals
-      // results underneath.
-      if (petResult.stage !== stageAtSessionStart) {
+      // Stage-ups (e.g. hatching out of the egg), graduations, and naming
+      // all celebrate/prompt once the whole session wraps up, rather than
+      // interrupting mid-deck the instant a card happens to cross a
+      // threshold. They also all wait for the results screen itself to be
+      // dismissed (see the "screen !== results" checks below and the
+      // results screen's own buttons) rather than covering it immediately,
+      // so the player always sees what this session earned before any of
+      // that. Setting celebration here, in the same pass as setScreen
+      // above and before the (now-safe) invalidate below, still matters
+      // for graduation specifically: petQuery.data flipping to the
+      // replacement's null species must never be visible without
+      // "graduated" already covering it (see the species gate a few dozen
+      // lines down) once the results screen is eventually dismissed.
+      if (graduation) {
+        setCelebration({
+          kind: "graduated",
+          petName: graduation.petName,
+          species: graduation.species,
+        });
+        pendingGraduationRef.current = null;
+        void utils.pet.get.invalidate();
+        void utils.pet.village.invalidate();
+      } else if (finalStage !== stageAtSessionStart && !hatched) {
+        // Hatching gets no separate stage-up popup — the results screen's
+        // own growth bar filling up, plus its naming prompt, already cover
+        // it. A plain stage-up (e.g. child -> teen) still gets one.
         setCelebration({
           kind: "stageUp",
-          stage: petResult.stage,
+          stage: finalStage,
           petName,
           species: petQuery.data?.species as Species,
         });
@@ -339,11 +410,12 @@ export function SignedInPetApp() {
   }
 
   function dismissGraduation(returnToVillage: boolean) {
+    // Same as dismissStageUp — the results screen underneath was already
+    // set by advanceSession, so this just reveals it instead of jumping
+    // straight to the village; its own "back to village" button handles
+    // getting there once the player's actually read the results.
     setCelebration(null);
-    // Graduation always ends the session outright — any cards left due
-    // just stay due.
     setAwaitingNewEgg(returnToVillage);
-    setScreen("home");
   }
 
   function dismissDied() {
@@ -370,11 +442,25 @@ export function SignedInPetApp() {
       });
       graduated = result.graduated;
       diedPet = result.diedPet;
-      // Stage-ups (result.stageAdvanced) are intentionally not handled
-      // here — they celebrate once at the end of the session instead of
-      // interrupting it the instant one card happens to cross a threshold.
-      // See advanceSession, which compares the stage at session end against
-      // stageAtSessionStart.
+      // A graduation retires the pet being studied — stash its final
+      // stats now, since they're only ever available on the response of
+      // the exact review that crossed the threshold (see the comment on
+      // pendingGraduationRef and the matching one in review.ts). Not
+      // celebrated here — see advanceSession, which surfaces it once the
+      // whole session wraps up instead of interrupting it mid-deck.
+      if (graduated) {
+        pendingGraduationRef.current = {
+          petName: graduated.name ?? "Your pet",
+          // Growth only accrues after a species is chosen, so a pet that
+          // just graduated always has one.
+          species: graduated.species as Species,
+          health: result.health,
+          growthPoints: result.growthPoints,
+        };
+      }
+      // Ordinary stage-ups (result.stageAdvanced) need no such snapshot —
+      // they're likewise deferred, but advanceSession can just re-fetch
+      // the (still the same) pet's current stats at session end.
     } finally {
       setIsSubmittingReview(false);
     }
@@ -401,19 +487,9 @@ export function SignedInPetApp() {
       return;
     }
 
-    if (graduated) {
-      await utils.pet.village.invalidate();
-      await utils.pet.get.invalidate();
-      setCelebration({
-        kind: "graduated",
-        petName: graduated.name ?? "Your pet",
-        // Growth only accrues after a species is chosen, so a pet that
-        // just graduated always has one.
-        species: graduated.species as Species,
-      });
-      return;
-    }
-
+    // graduated is handled by advanceSession (see pendingGraduationRef
+    // above) rather than here, so the rest of the deck keeps going instead
+    // of getting cut off the instant the threshold is crossed.
     await advanceSession({
       queue,
       nextIndex,
@@ -438,8 +514,10 @@ export function SignedInPetApp() {
   // Checked ahead of the species gate below: right after graduating, the
   // replacement pet has no species yet either, and the celebration screen
   // needs to take over before that gate would otherwise force the species
-  // picker on top of it.
-  if (celebration?.kind === "graduated") {
+  // picker on top of it. Also gated on the results screen having already
+  // been dismissed (see advanceSession) — the player sees what the
+  // session earned before the graduation announcement covers it.
+  if (celebration?.kind === "graduated" && screen !== "results") {
     return (
       <GraduationScreen
         petName={celebration.petName}
@@ -460,7 +538,14 @@ export function SignedInPetApp() {
       />
     );
   }
-  if (!petQuery.data.species && !awaitingNewEgg) {
+  // Also gated on the results screen having been dismissed: a graduation's
+  // invalidate (see advanceSession) can flip petQuery.data.species to null
+  // while the player is still looking at that session's results, and
+  // unlike the graduated-celebration check above, this gate doesn't
+  // otherwise know or care what screen is showing — without this it pops
+  // up over the results screen uninvited, well before the player has even
+  // seen the graduation announcement, let alone chosen "Find a new egg".
+  if (!petQuery.data.species && !awaitingNewEgg && screen !== "results") {
     return (
       <SpeciesPickerScreen
         onChoose={async (species) => {
@@ -471,15 +556,24 @@ export function SignedInPetApp() {
       />
     );
   }
-  // Hatched (past the egg stage) but never named — prompt once, right at
-  // the hatch moment, instead of defaulting to a placeholder name forever.
-  if (petQuery.data.stage !== "egg" && !petQuery.data.name) {
+  // Naming is a deliberate choice, not a forced gate — reached only via
+  // the results screen's "Name your hatched egg" button or clicking the
+  // unnamed label on the home screen (see HomeScreen's onNamePet), both of
+  // which only ever set screen to "namePet" once species + a non-egg stage
+  // are already true. A pet can go on being unnamed indefinitely; nothing
+  // else in the app requires a name.
+  if (
+    screen === "namePet" &&
+    petQuery.data.species &&
+    !petQuery.data.name
+  ) {
     return (
       <NamePetScreen
         species={petQuery.data.species as Species}
         onSubmit={async (name) => {
           await setName.mutateAsync({ name });
           await utils.pet.get.invalidate();
+          setScreen("home");
         }}
       />
     );
@@ -506,8 +600,9 @@ export function SignedInPetApp() {
   // Checked here (rather than alongside the graduated celebration above)
   // because it needs `pet`/petDisplayName already resolved, and — unlike
   // graduation — never coincides with a null species, so there's no
-  // ordering conflict with the gates above.
-  if (celebration?.kind === "stageUp") {
+  // ordering conflict with the gates above. Also gated on the results
+  // screen already being dismissed, same reasoning as graduation.
+  if (celebration?.kind === "stageUp" && screen !== "results") {
     return (
       <StageUpScreen
         petName={celebration.petName}
@@ -616,6 +711,7 @@ export function SignedInPetApp() {
           onSelectRetiredPet={setSelectedRetiredPet}
           onStudyNow={goStudyNow}
           onHatchNewEgg={() => setAwaitingNewEgg(false)}
+          onNamePet={() => setScreen("namePet")}
         />
       )}
 
@@ -650,6 +746,7 @@ export function SignedInPetApp() {
         {screen === "review" && (
           <ReviewScreen
             pet={pet}
+            deckName={reviewDeckName}
             reviewCards={reviewCards}
             reviewIndex={reviewIndex}
             flipped={flipped}
@@ -665,6 +762,7 @@ export function SignedInPetApp() {
             results={results}
             pet={pet}
             onBackHome={() => setScreen("home")}
+            onNameHatchling={() => setScreen("namePet")}
           />
         )}
 

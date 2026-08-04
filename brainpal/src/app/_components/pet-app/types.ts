@@ -2,7 +2,13 @@ import { type RouterOutputs } from "~/trpc/react";
 
 export type Species = "bunny" | "frog" | "monkey" | "dumpling";
 export type LifeStage = "egg" | "child" | "teen" | "adult";
-export type Screen = "home" | "decks" | "review" | "results" | "deckDetail";
+export type Screen =
+  | "home"
+  | "decks"
+  | "review"
+  | "results"
+  | "deckDetail"
+  | "namePet";
 export type Grade = "again" | "hard" | "good" | "easy";
 
 export type DeckSummary = RouterOutputs["deck"]["list"][number];
@@ -35,4 +41,18 @@ export interface SessionResults {
   growthDelta: number;
   celebrate: boolean;
   message: string;
+  // The pet's own stage at the start of the session — the growth bar shown
+  // on the results screen is that stage's own range (e.g. egg's 0-to-1),
+  // so a session that finishes it reads as "the bar filled up", regardless
+  // of whether the pet has since graduated into something else entirely.
+  stageAtStart: LifeStage;
+  growthAtStart: number;
+  growthAtEnd: number;
+  healthAtStart: number;
+  healthAtEnd: number;
+  // Crossed out of "egg" this session — needs a name, which the results
+  // screen offers as a choice rather than forcing it immediately (see
+  // signed-in-pet-app.tsx's "namePet" screen).
+  hatched: boolean;
+  graduated: boolean;
 }

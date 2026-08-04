@@ -99,7 +99,7 @@ export function StageUpScreen({
             animation: "petBounce 1.8s ease-in-out infinite",
           }}
         >
-          <PetFace species={species} size={size} stage={stage} />
+          <PetFace species={species} size={size} stage={stage} align="center" />
         </div>
       </div>
       <div style={messageStyle}>
@@ -149,7 +149,7 @@ export function GraduationScreen({
             animation: "petBounce 1.8s ease-in-out infinite",
           }}
         >
-          <PetFace species={species} size={150} />
+          <PetFace species={species} size={150} align="center" />
         </div>
       </div>
       <div style={messageStyle}>
@@ -190,15 +190,23 @@ export function DeathScreen({
   return (
     <div style={screenStyle}>
       <div style={titleStyle}>So sorry...</div>
-      <div style={{ width: 150, height: 150, opacity: 0.8 }}>
+      <div
+        style={{
+          width: 150,
+          height: 150,
+          opacity: 0.8,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
         <img
           src="/pets/ghost.svg"
           alt="Ghost"
           style={{
-            width: "100%",
-            height: "100%",
+            width: 150 * 0.7,
+            height: 150 * 0.7,
             objectFit: "contain",
-            objectPosition: "bottom",
           }}
         />
       </div>

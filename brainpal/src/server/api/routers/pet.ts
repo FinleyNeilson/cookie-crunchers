@@ -19,11 +19,13 @@ export const petRouter = createTRPCRouter({
     // app was just reopened) rather than via a review/debug action.
     const { pet, diedPet } = await getActivePet(ctx.db, ctx.session.user.id);
     const stats = await getPetStats(ctx.db, ctx.session.user.id, pet.createdAt);
-    const growthPoints = await getGrowthPoints(
-      ctx.db,
-      ctx.session.user.id,
-      pet.createdAt,
-    );
+    // Growth (and so life stage) only makes sense once a species has been
+    // chosen — a lot of the UI assumes "past the egg stage" implies "has a
+    // species" (see e.g. PetFace), so this must hold even though nothing
+    // in the review-grading math itself is species-aware.
+    const growthPoints = pet.species
+      ? await getGrowthPoints(ctx.db, ctx.session.user.id, pet.createdAt)
+      : 0;
 
     return {
       ...pet,

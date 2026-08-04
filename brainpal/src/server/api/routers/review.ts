@@ -9,6 +9,7 @@ import {
   stageForMastery,
   type LifeStage,
 } from "~/server/pet/growth";
+import { getPetStats } from "~/server/pet/health";
 import { sm2 } from "~/server/srs/sm2";
 
 export const reviewRouter = createTRPCRouter({
@@ -69,7 +70,13 @@ export const reviewRouter = createTRPCRouter({
         ctx.session.user.id,
       );
       const stageBefore = stageForMastery(
-        await getGrowthPoints(ctx.db, ctx.session.user.id, activePet.createdAt),
+        activePet.species
+          ? await getGrowthPoints(
+              ctx.db,
+              ctx.session.user.id,
+              activePet.createdAt,
+            )
+          : 0,
       );
 
       const [, reviewLog] = await ctx.db.$transaction([
@@ -94,12 +101,27 @@ export const reviewRouter = createTRPCRouter({
         }),
       ]);
 
-      const growthPoints = await getGrowthPoints(
+      // Growth (and so life stage) only makes sense once a species has
+      // been chosen — see the matching comment in pet.ts's `get`. Without
+      // this, a pet that's still awaiting a species pick (e.g. right after
+      // a graduation, if more due cards get studied in the same session)
+      // could rack up growth and "advance" past egg with no species to
+      // show for it.
+      const growthPoints = activePet.species
+        ? await getGrowthPoints(ctx.db, ctx.session.user.id, activePet.createdAt)
+        : 0;
+      const stageAfter = stageForMastery(growthPoints);
+      // Snapshotted here, keyed on activePet.createdAt like growthPoints
+      // above — this reflects the pet that was actually just studied,
+      // regardless of whether graduatePet() below immediately swaps in a
+      // replacement. The client needs this to report session results
+      // against the pet that earned them, not whatever's active by the
+      // time the session's last card is graded (see signed-in-pet-app.tsx).
+      const { health } = await getPetStats(
         ctx.db,
         ctx.session.user.id,
         activePet.createdAt,
       );
-      const stageAfter = stageForMastery(growthPoints);
 
       let graduated: { name: string | null; species: string | null } | null =
         null;
@@ -112,6 +134,13 @@ export const reviewRouter = createTRPCRouter({
         }
       }
 
-      return { reviewLog, graduated, stageAdvanced, diedPet };
+      return {
+        reviewLog,
+        graduated,
+        stageAdvanced,
+        diedPet,
+        health,
+        growthPoints,
+      };
     }),
 });

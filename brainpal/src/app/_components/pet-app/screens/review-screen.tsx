@@ -12,6 +12,7 @@ import {
 
 export function ReviewScreen({
   pet,
+  deckName,
   reviewCards,
   reviewIndex,
   flipped,
@@ -21,6 +22,7 @@ export function ReviewScreen({
   onBack,
 }: {
   pet: PetState;
+  deckName: string;
   reviewCards: ReviewCard[];
   reviewIndex: number;
   flipped: boolean;
@@ -53,6 +55,20 @@ export function ReviewScreen({
 
   return (
     <div className="review-screen">
+      {deckName && (
+        <div
+          style={{
+            textAlign: "center",
+            fontWeight: 800,
+            fontSize: 13,
+            color: "#7692A0",
+            textTransform: "uppercase",
+            letterSpacing: 0.4,
+          }}
+        >
+          {deckName}
+        </div>
+      )}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <button
           onClick={onBack}
@@ -108,7 +124,7 @@ export function ReviewScreen({
         }}
       >
         <div style={{ width: 110, height: 110 }}>
-          <PetPortrait pet={pet} size={110} />
+          <PetPortrait pet={pet} size={110} align="center" />
         </div>
       </div>
 
