@@ -22,15 +22,23 @@ export function RetiredPetPortrait({
   // shown alongside it, whether or not a species was ever chosen.
   if (pet.retirementReason === "died") {
     return (
-      <div style={{ width: size, height: size, opacity: 0.7 }}>
+      <div
+        style={{
+          width: size,
+          height: size,
+          opacity: 0.7,
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "center",
+        }}
+      >
         <img
           src="/pets/ghost.svg"
           alt="Ghost"
           style={{
-            width: "100%",
-            height: "100%",
+            width: size * 0.7,
+            height: size * 0.7,
             objectFit: "contain",
-            objectPosition: "bottom",
           }}
         />
       </div>

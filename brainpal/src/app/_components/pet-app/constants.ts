@@ -30,7 +30,7 @@ export const STAGE_LABEL: Record<LifeStage, string> = {
 };
 
 export const STAGE_SIZE: Record<LifeStage, number> = {
-  egg: 300,
+  egg: 190,
   child: 200,
   teen: 260,
   adult: 300,

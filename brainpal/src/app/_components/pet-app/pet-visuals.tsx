@@ -35,13 +35,39 @@ export function Cloud({
   );
 }
 
-export function Egg({ size = 108 }: { size?: number }) {
+// Now that each SVG's viewBox is cropped to its actual content (see
+// public/pets/*.svg), the art fills its box at "size" — rendering at a
+// fraction of that box keeps pets from looking oversized while leaving
+// every caller's layout math (which only knows about "size") untouched.
+const PET_ART_SCALE = 0.7;
+
+// "bottom" pins the (now smaller) art to the box's bottom edge — for
+// spots where something else (a name tag, a label) sits right below and
+// should read as touching the pet's feet. "center" is for plain
+// standalone avatars, where pinning to the bottom would instead open up
+// a gap between the pet and whatever's above it (see review-screen).
+type PetArtAlign = "bottom" | "center";
+
+function alignItemsFor(align: PetArtAlign) {
+  return align === "bottom" ? "flex-end" : "center";
+}
+
+export function Egg({
+  size = 108,
+  align = "bottom",
+}: {
+  size?: number;
+  align?: PetArtAlign;
+}) {
   return (
     <div
       style={{
         width: size,
         height: size,
         position: "relative",
+        display: "flex",
+        alignItems: alignItemsFor(align),
+        justifyContent: "center",
         animation: "crackShake 3s ease-in-out infinite",
       }}
     >
@@ -49,26 +75,29 @@ export function Egg({ size = 108 }: { size?: number }) {
         src="/pets/egg.svg"
         alt="Egg"
         style={{
-          width: "100%",
-          height: "100%",
+          width: size * PET_ART_SCALE,
+          height: size * PET_ART_SCALE,
           objectFit: "contain",
-          // The source art is a wide canvas (2360x1640) letterboxed into
-          // this square box — anchoring to the bottom instead of centering
-          // keeps the character sitting on the "ground" instead of
-          // floating with a gap beneath it.
-          objectPosition: "bottom",
         }}
       />
     </div>
   );
 }
 
-export function PetPortrait({ pet, size }: { pet: PetState; size: number }) {
-  if (pet.stage === "egg") return <Egg size={size} />;
+export function PetPortrait({
+  pet,
+  size,
+  align,
+}: {
+  pet: PetState;
+  size: number;
+  align?: PetArtAlign;
+}) {
+  if (pet.stage === "egg") return <Egg size={size} align={align} />;
   return (
     // Non-egg stage guarantees a species was already chosen — see the
     // PetState.species comment.
-    <PetFace species={pet.species!} size={size} stage={pet.stage} />
+    <PetFace species={pet.species!} size={size} stage={pet.stage} align={align} />
   );
 }
 
@@ -82,10 +111,12 @@ export function PetFace({
   species,
   size,
   stage,
+  align = "bottom",
 }: {
   species: Species;
   size: number;
   stage?: LifeStage;
+  align?: PetArtAlign;
 }) {
   const stageImage =
     stage === "child" || stage === "teen"
@@ -93,17 +124,23 @@ export function PetFace({
       : undefined;
 
   return (
-    <div style={{ position: "relative", width: size, height: size }}>
+    <div
+      style={{
+        position: "relative",
+        width: size,
+        height: size,
+        display: "flex",
+        alignItems: alignItemsFor(align),
+        justifyContent: "center",
+      }}
+    >
       <img
         src={stageImage ?? SPECIES_IMAGE[species]}
         alt={`${SPECIES[species].label} pet`}
         style={{
-          width: "100%",
-          height: "100%",
+          width: size * PET_ART_SCALE,
+          height: size * PET_ART_SCALE,
           objectFit: "contain",
-          // See the matching comment in Egg — the source art is a wide
-          // canvas letterboxed into this square box.
-          objectPosition: "bottom",
         }}
       />
     </div>
